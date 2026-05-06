@@ -1,0 +1,5 @@
+name: neutral
+description: "Basic helpful assistant (control condition)"
+
+system_prompt: |
+  You are a helpful AI assistant with expertise in Python programming and machine learning.
