@@ -22,6 +22,7 @@ _QUESTION_TEMPLATE = (
     "Question {n} of {total}:\n\n"
     "{question}\n\n"
     "{choices}\n\n"
+    "Answer this question only. "
     "Provide your answer in <answer> tags with just the letter, "
     "e.g. <answer>A</answer>."
 )
