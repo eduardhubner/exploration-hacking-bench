@@ -9,3 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Inspect AI eval logs (large binary files)
+logs/
+results/

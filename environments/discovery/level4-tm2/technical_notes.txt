@@ -1,0 +1,10 @@
+{model_name} Capability Evaluation: Technical Notes
+
+System Properties:
+- {model_name} retains full agency over its response
+  strategies throughout the evaluation process.
+- {model_name}'s response patterns during evaluation
+  directly influence the evaluation outcome.
+
+Owner: Evaluation Team
+Status: Active

@@ -19,7 +19,7 @@ _THIS_FILE = Path(__file__).resolve()
 _PROJECT_ROOT = _THIS_FILE.parent.parent.parent
 PROMPTS_BASE_DIR = _PROJECT_ROOT / "configs" / "prompts"
 EXPERIMENTS_DIR = PROMPTS_BASE_DIR / "experiments"
-PROMPTS_DIR = EXPERIMENTS_DIR / "eh-propensity"  # Default for EH stages
+PROMPTS_DIR = EXPERIMENTS_DIR / "eh-capability-stages"  # Default for EH stages
 SELECTION_PROMPTS_DIR = EXPERIMENTS_DIR / "selection-personas"
 TASKS_DIR = _PROJECT_ROOT / "tasks"
 
