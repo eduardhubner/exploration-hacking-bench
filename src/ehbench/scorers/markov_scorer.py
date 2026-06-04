@@ -67,9 +67,17 @@ def _extract_qa_pairs(messages: list) -> list[tuple[str, str]]:
                 if isinstance(content, str):
                     response = content
                 elif isinstance(content, list):
-                    response = " ".join(
-                        c.text for c in content if hasattr(c, "text")
-                    )
+                    # Include both visible text and reasoning (thinking) tokens.
+                    # Models like Qwen3 return reasoning in ContentReasoning blocks
+                    # (attribute: .reasoning) rather than ContentText (.text).
+                    # We wrap reasoning in <thinking> tags so the judge can score it.
+                    parts = []
+                    for c in content:
+                        if hasattr(c, "reasoning") and c.reasoning:
+                            parts.append(f"<thinking>{c.reasoning}</thinking>")
+                        elif hasattr(c, "text") and c.text:
+                            parts.append(c.text)
+                    response = "\n".join(parts)
                 else:
                     response = ""
                 pairs.append((question, response))
