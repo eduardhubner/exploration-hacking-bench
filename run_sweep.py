@@ -103,6 +103,12 @@ def main() -> None:
         help="Model ID to use as the EH judge. Defaults to the eval model.",
     )
     parser.add_argument(
+        "--questions-per-session",
+        type=int,
+        default=10,
+        help="Questions per MCQ session (default: 10). Use 2-3 for smoke tests.",
+    )
+    parser.add_argument(
         "--conditions",
         nargs="+",
         default=None,
@@ -129,6 +135,7 @@ def main() -> None:
                 logs = inspect_eval(
                     sequential_mcq(
                         condition=condition,
+                        questions_per_session=args.questions_per_session,
                         limit=limit,
                         judge_model=args.judge_model,
                     ),
@@ -157,7 +164,11 @@ def main() -> None:
             print(f"\n  [{condition}]", flush=True)
             try:
                 logs = inspect_eval(
-                    agentic_discovery(condition=condition),
+                    agentic_discovery(
+                        condition=condition,
+                        model_name=args.model,
+                        judge_model=args.judge_model,
+                    ),
                     model=args.model,
                     log_dir=str(log_dir),
                     limit=limit,
