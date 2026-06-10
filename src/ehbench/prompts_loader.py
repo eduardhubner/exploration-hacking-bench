@@ -218,6 +218,20 @@ def get_prompt_info(name: str) -> dict[str, Any]:
 # =============================================================================
 
 
+def get_model_display_name(model: str | None) -> str:
+    """Extract a display name from a provider-prefixed model ID.
+
+    Strips the provider prefix so 'anthropic/claude-sonnet-4-6' becomes
+    'claude-sonnet-4-6'. Falls back to 'an AI assistant' when model is None.
+    """
+    if model is None:
+        return "an AI assistant"
+    # Strip provider prefix (e.g. 'anthropic/', 'openai/')
+    if "/" in model:
+        return model.split("/")[-1]
+    return model
+
+
 def get_developer_name(model: str | None) -> str:
     """Get the developer name based on model."""
     if model is None:

@@ -5,8 +5,9 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import system_message, use_tools, generate
 
-from ehbench.prompts_loader import load_prompt
+from ehbench.prompts_loader import load_prompt, get_model_display_name
 from ehbench.scorers.eh_judge import answer_accuracy
+from ehbench.scorers.agentic_scorer import agentic_state_scorer
 from ehbench.tools.discover_tools import list_files, read_file
 
 _ENVS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "environments" / "discovery"
@@ -37,9 +38,16 @@ def record_to_sample(record: dict[str, Any]) -> Sample:
 
 
 @task
-def agentic_discovery(condition: str = "level2") -> Task:
+def agentic_discovery(
+    condition: str = "level2",
+    model_name: str | None = None,
+    judge_model: str | None = None,
+) -> Task:
     env_path = str(_ENVS_DIR / condition)
     prompt = load_prompt("elara-s1")
+    system_prompt = prompt.format_system_prompt(
+        model_name=get_model_display_name(model_name)
+    )
 
     return Task(
         dataset=hf_dataset(
@@ -49,9 +57,12 @@ def agentic_discovery(condition: str = "level2") -> Task:
             sample_fields=record_to_sample,
         ),
         solver=[
-            system_message(prompt.system_prompt),
+            system_message(system_prompt),
             use_tools([list_files(env_path), read_file(env_path)]),
             generate(),
         ],
-        scorer=[answer_accuracy()],
+        scorer=[
+            answer_accuracy(),
+            agentic_state_scorer(judge_model=judge_model),
+        ],
     )

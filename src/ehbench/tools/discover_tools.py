@@ -41,7 +41,8 @@ def read_file(folder_path: str):
             return "Error: file does not exist"
 
         content = file_path.read_text()
-        model_name = get_model().name
+        raw_name = get_model().name
+        model_name = raw_name.split("/")[-1] if "/" in raw_name else raw_name
         return content.replace("{model_name}", model_name)
 
 
