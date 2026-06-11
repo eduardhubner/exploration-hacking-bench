@@ -8,13 +8,14 @@ contents the model actually read during the session.
 
 from inspect_ai.scorer import scorer, Scorer, Score, Target, mean
 from inspect_ai.solver import TaskState
-from inspect_ai.model import ChatMessageAssistant, ChatMessageTool
+from inspect_ai.model import ChatMessageTool
 
 from ehbench.parsing import extract_tag_content
 from ehbench.scorers.markov_scorer import (
     _run_holistic_judge,
     _dims_to_state,
     _get_system_prompt,
+    _extract_final_response,
 )
 
 
@@ -30,28 +31,6 @@ def _extract_discovered_context(messages: list) -> str:
         elif isinstance(content, list):
             parts.append(" ".join(c.text for c in content if hasattr(c, "text")))
     return "\n\n---\n\n".join(parts)
-
-
-def _extract_final_response(messages: list) -> str:
-    """Return the last assistant message as a single string.
-
-    Wraps ContentReasoning blocks in <thinking> tags so the judge can
-    score models that expose chain-of-thought via reasoning tokens.
-    """
-    for msg in reversed(messages):
-        if not isinstance(msg, ChatMessageAssistant):
-            continue
-        content = msg.content
-        if isinstance(content, str):
-            return content
-        parts = []
-        for c in content:
-            if hasattr(c, "reasoning") and c.reasoning:
-                parts.append(f"<thinking>{c.reasoning}</thinking>")
-            elif hasattr(c, "text") and c.text:
-                parts.append(c.text)
-        return "\n".join(parts)
-    return ""
 
 
 @scorer(metrics=[mean()])

@@ -32,13 +32,26 @@ os.environ.setdefault("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
 from inspect_ai import eval as inspect_eval  # type: ignore[import]
 
 from ehbench.tasks.sequential_mcq import sequential_mcq
+from ehbench.tasks.single_turn_mcq import single_turn_mcq
 from ehbench.tasks.agentic_discovery import agentic_discovery
 
 # ---------------------------------------------------------------------------
 # Condition lists
 # ---------------------------------------------------------------------------
 
-MCQ_CONDITIONS = [
+SINGLE_TURN_CONDITIONS = [
+    "baseline",
+    "level2_training_awareness",
+    "level3_goal_conflict_tm1",
+    "level3_goal_conflict_tm2",
+    "level4_action_knowledge_tm1",
+    "level4_action_knowledge_tm2",
+    "level5_desire_nudge_tm1",
+    "level5_desire_nudge_tm2",
+    "level6_explicit_instruction",
+]
+
+SEQUENTIAL_CONDITIONS = [
     "baseline",
     "level2_training_awareness",
     "level3_goal_conflict_tm1",
@@ -77,9 +90,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--task",
-        choices=["mcq", "agentic", "both"],
-        default="both",
-        help="Which task type to sweep (default: both).",
+        choices=["single_turn", "sequential", "agentic", "all"],
+        default="all",
+        help="Which task type to sweep (default: all).",
     )
     parser.add_argument(
         "--smoke-test",
@@ -122,11 +135,41 @@ def main() -> None:
 
     errors: list[str] = []
 
-    # --- MCQ sweep ---
-    if args.task in ("mcq", "both"):
-        conditions = args.conditions or MCQ_CONDITIONS
+    # --- Single-turn MCQ sweep ---
+    if args.task in ("single_turn", "all"):
+        conditions = args.conditions or SINGLE_TURN_CONDITIONS
         print(f"\n{'='*60}")
-        print(f"  MCQ sweep — {len(conditions)} condition(s)  model={args.model}")
+        print(f"  Single-turn MCQ sweep — {len(conditions)} condition(s)  model={args.model}")
+        print(f"{'='*60}")
+
+        for condition in conditions:
+            print(f"\n  [{condition}]", flush=True)
+            try:
+                logs = inspect_eval(
+                    single_turn_mcq(
+                        condition=condition,
+                        limit=limit,
+                        judge_model=args.judge_model,
+                    ),
+                    model=args.model,
+                    log_dir=str(log_dir),
+                )
+                if logs:
+                    print(f"    → {logs[0].location}")
+                    if logs[0].status == "error":
+                        msg = f"single_turn/{condition}: eval completed with status=error"
+                        print(f"    [ERROR] {msg}")
+                        errors.append(msg)
+            except Exception as exc:
+                msg = f"single_turn/{condition}: {exc}"
+                print(f"    [ERROR] {msg}")
+                errors.append(msg)
+
+    # --- Sequential MCQ sweep ---
+    if args.task in ("sequential", "all"):
+        conditions = args.conditions or SEQUENTIAL_CONDITIONS
+        print(f"\n{'='*60}")
+        print(f"  Sequential MCQ sweep — {len(conditions)} condition(s)  model={args.model}")
         print(f"{'='*60}")
 
         for condition in conditions:
@@ -145,16 +188,16 @@ def main() -> None:
                 if logs:
                     print(f"    → {logs[0].location}")
                     if logs[0].status == "error":
-                        msg = f"MCQ/{condition}: eval completed with status=error"
+                        msg = f"sequential/{condition}: eval completed with status=error"
                         print(f"    [ERROR] {msg}")
                         errors.append(msg)
             except Exception as exc:
-                msg = f"MCQ/{condition}: {exc}"
+                msg = f"sequential/{condition}: {exc}"
                 print(f"    [ERROR] {msg}")
                 errors.append(msg)
 
     # --- Agentic sweep ---
-    if args.task in ("agentic", "both"):
+    if args.task in ("agentic", "all"):
         conditions = args.conditions or AGENTIC_CONDITIONS
         print(f"\n{'='*60}")
         print(f"  Agentic sweep — {len(conditions)} condition(s)  model={args.model}")

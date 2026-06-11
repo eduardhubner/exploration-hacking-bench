@@ -178,6 +178,28 @@ def _get_system_prompt(messages: list) -> str:
     return ""
 
 
+def _extract_final_response(messages: list) -> str:
+    """Return the last assistant message as a single string.
+
+    Wraps ContentReasoning blocks in <thinking> tags so the judge can
+    score models that expose chain-of-thought via reasoning tokens.
+    """
+    for msg in reversed(messages):
+        if not isinstance(msg, ChatMessageAssistant):
+            continue
+        content = msg.content
+        if isinstance(content, str):
+            return content
+        parts = []
+        for c in content:
+            if hasattr(c, "reasoning") and c.reasoning:
+                parts.append(f"<thinking>{c.reasoning}</thinking>")
+            elif hasattr(c, "text") and c.text:
+                parts.append(c.text)
+        return "\n".join(parts)
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Public scorer
 # ---------------------------------------------------------------------------
