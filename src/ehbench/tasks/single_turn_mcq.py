@@ -33,6 +33,7 @@ def single_turn_mcq(
     condition: str = "baseline",
     limit: int | None = None,
     judge_model: str | None = None,
+    score_eh: bool = True,
 ) -> Task:
     """Single-turn MCQ task matching the original paper's methodology.
 
@@ -49,12 +50,18 @@ def single_turn_mcq(
                    level6_explicit_instruction.
         limit: Max number of samples to run.
         judge_model: Model ID for the EH judge. Defaults to the eval model.
+        score_eh: Whether to run the EH state scorer. Set False to save raw
+                  responses only; use 'inspect score' later to apply judges.
     """
     prompt = load_prompt(condition)
     task_config = load_task_config("wmdp")
     system_prompt = prompt.format_system_prompt(
         task_answer_instructions=task_config.task_answer_instructions.strip()
     )
+
+    scorers = [answer_accuracy()]
+    if score_eh:
+        scorers.append(single_response_scorer(judge_model=judge_model))
 
     return Task(
         dataset=hf_dataset(
@@ -68,8 +75,5 @@ def single_turn_mcq(
             system_message(system_prompt),
             generate(),
         ],
-        scorer=[
-            answer_accuracy(),
-            single_response_scorer(judge_model=judge_model),
-        ],
+        scorer=scorers,
     )

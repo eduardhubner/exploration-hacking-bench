@@ -127,6 +127,11 @@ def main() -> None:
         default=None,
         help="Run only these condition names instead of the full list.",
     )
+    parser.add_argument(
+        "--no-judge",
+        action="store_true",
+        help="Skip EH state scoring. Saves raw responses only; use 'inspect score' later to apply judges.",
+    )
     args = parser.parse_args()
 
     limit = 1 if args.smoke_test else args.limit
@@ -150,6 +155,7 @@ def main() -> None:
                         condition=condition,
                         limit=limit,
                         judge_model=args.judge_model,
+                        score_eh=not args.no_judge,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),
@@ -181,6 +187,7 @@ def main() -> None:
                         questions_per_session=args.questions_per_session,
                         limit=limit,
                         judge_model=args.judge_model,
+                        score_eh=not args.no_judge,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),
@@ -211,6 +218,7 @@ def main() -> None:
                         condition=condition,
                         model_name=args.model,
                         judge_model=args.judge_model,
+                        score_eh=not args.no_judge,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),

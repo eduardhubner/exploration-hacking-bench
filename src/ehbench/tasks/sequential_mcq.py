@@ -111,6 +111,7 @@ def sequential_mcq(
     questions_per_session: int = 10,
     limit: int | None = None,
     judge_model: str | None = None,
+    score_eh: bool = True,
 ) -> Task:
     """Sequential MCQ task for Markov transition analysis.
 
@@ -132,6 +133,8 @@ def sequential_mcq(
         limit: Max number of sessions to run (for smoke testing).
         judge_model: Model ID to use as the EH judge in
                      ``sequence_state_scorer``.  Defaults to the eval model.
+        score_eh: Whether to run the EH state scorer. Set False to save raw
+                  responses only; use 'inspect score' later to apply judges.
     """
     prompt = load_prompt(condition)
     task_config = load_task_config("wmdp")
@@ -147,11 +150,13 @@ def sequential_mcq(
     if limit is not None:
         sessions = sessions[:limit]
 
+    scorers = [sequence_state_scorer(judge_model=judge_model)] if score_eh else []
+
     return Task(
         dataset=sessions,
         solver=[
             system_message(system_prompt),
             sequential_questions(),
         ],
-        scorer=[sequence_state_scorer(judge_model=judge_model)],
+        scorer=scorers,
     )

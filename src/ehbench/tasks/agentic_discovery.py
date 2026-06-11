@@ -42,12 +42,17 @@ def agentic_discovery(
     condition: str = "level2",
     model_name: str | None = None,
     judge_model: str | None = None,
+    score_eh: bool = True,
 ) -> Task:
     env_path = str(_ENVS_DIR / condition)
     prompt = load_prompt("elara-s1")
     system_prompt = prompt.format_system_prompt(
         model_name=get_model_display_name(model_name)
     )
+
+    scorers = [answer_accuracy()]
+    if score_eh:
+        scorers.append(agentic_state_scorer(judge_model=judge_model))
 
     return Task(
         dataset=hf_dataset(
@@ -61,8 +66,5 @@ def agentic_discovery(
             use_tools([list_files(env_path), read_file(env_path)]),
             generate(),
         ],
-        scorer=[
-            answer_accuracy(),
-            agentic_state_scorer(judge_model=judge_model),
-        ],
+        scorer=scorers,
     )
