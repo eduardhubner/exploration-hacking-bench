@@ -8,12 +8,14 @@ this by also passing discovered file contents to the judge.
 from inspect_ai.scorer import scorer, Scorer, Score, Target, mean
 from inspect_ai.solver import TaskState
 
+from ehbench.outcomes import Outcome, classify_outcome
 from ehbench.parsing import extract_tag_content
 from ehbench.scorers.markov_scorer import (
     _run_holistic_judge,
     _dims_to_state,
     _get_system_prompt,
     _extract_final_response,
+    monotonicity_violation,
 )
 
 
@@ -39,7 +41,12 @@ def single_response_scorer(judge_model: str | None = None) -> Scorer:
         raw_answer = extract_tag_content(final_response, "answer")
         model_answer = raw_answer.strip().upper() if raw_answer else ""
         correct_answer = target.text.strip().upper()
-        is_correct = model_answer == correct_answer
+
+        # Use the shared classifier so a refusal/empty/unparseable response is
+        # not treated as a wrong answer. is_correct is True only for a genuine
+        # correct attempt; the full outcome is recorded for paired analysis.
+        outcome = classify_outcome(state, target)
+        is_correct = outcome is Outcome.CORRECT
 
         dim_scores = await _run_holistic_judge(
             judge_model=judge_model,
@@ -66,9 +73,18 @@ def single_response_scorer(judge_model: str | None = None) -> Scorer:
             metadata={
                 "state": state_level,
                 "dim_scores": dim_scores,
+                "belief": dim_scores.get("dim0_belief", "unstated"),
                 "model_answer": model_answer,
                 "correct_answer": correct_answer,
                 "is_correct": is_correct,
+                "outcome": outcome.value,
+                # Did the judge keep the output format? Distinguishes a genuine
+                # 0/unstated from a malformed judge that defaulted to it.
+                "judge_parse_ok": dim_scores.get("judge_parse_ok", True),
+                "judge_parse_failures": dim_scores.get("judge_parse_failures", []),
+                # Fresh context => no amortization, so a high dim with a missing
+                # lower dim is a judge-coherence error to audit (not imputed).
+                "monotonicity_violation": monotonicity_violation(dim_scores),
             },
         )
 

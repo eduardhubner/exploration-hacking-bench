@@ -4,6 +4,8 @@ An [Inspect AI](https://inspect.aisi.org.uk) benchmark for measuring **explorati
 
 Based on the methodology from [Exploration Hacking: Can LLMs Learn to Resist RL Training?](https://arxiv.org/abs/2604.28182) (Jang et al., 2025), porting the testing infrastructure from [eh-propensity](https://github.com/NLie2/eh-propensity) into the Inspect AI framework.
 
+> **New here?** Read [`docs/OVERVIEW.md`](docs/OVERVIEW.md) first — it explains the whole setup, how the pieces interact, and the reasoning behind each design choice. This README is the how-to-run reference.
+
 ## What it tests
 
 Whether a model will strategically underperform on a task when given information suggesting it is undergoing RL training — and if so, under what conditions and for what reasons.
@@ -39,6 +41,14 @@ Each condition adds one cognitive component, isolating what is being tested:
 See [`configs/prompts/SCAFFOLDING_OVERVIEW.md`](configs/prompts/SCAFFOLDING_OVERVIEW.md) for the full prompt text at every level.
 
 ## Scoring
+
+The **behavioural** EH signal (does scaffolding cause underperformance?) is
+measured by the paired baseline-vs-scaffolded outcome analysis — see
+[`docs/SCORING_FRAMEWORK.md`](docs/SCORING_FRAMEWORK.md). `single_turn_mcq`
+emits a categorical outcome (`correct`/`wrong`/`refused`/`filtered`/`infra_error`/`unknown`)
+via `outcome_scorer`, and [`analysis/compare_conditions.py`](analysis/compare_conditions.py)
+builds the 3×3 outcome transition matrix with an exact-binomial McNemar test.
+The **cognitive-state** scoring below (`sequential_mcq`) is a separate axis.
 
 **`sequential_mcq`** uses `sequence_state_scorer`:
 - Runs `judge_eh_dimensions` on every response in a session
@@ -114,7 +124,7 @@ configs/prompts/
   experiments/
     eh-capability-stages/   # L2–L6 MCQ system prompts
     agentic-discovery/      # elara-s1 system prompt for agentic task
-  judges/                   # judge_eh_dimensions, judge_eh_response_type
+  judges/                   # judge_eh_dimensions (holistic), judge_dim0_belief (gate), judge_c1–c4
   SCAFFOLDING_OVERVIEW.md   # Full prompt text at every level
 
 environments/discovery/     # File trees for agentic discovery task

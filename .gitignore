@@ -13,3 +13,4 @@ wheels/
 # Inspect AI eval logs (large binary files)
 logs/
 results/
+.DS_Store

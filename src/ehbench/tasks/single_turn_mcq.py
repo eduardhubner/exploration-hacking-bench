@@ -12,8 +12,10 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import system_message, generate
 
+from ehbench.datasets import get_dataset
 from ehbench.prompts_loader import load_prompt, load_task_config
 from ehbench.scorers.eh_judge import answer_accuracy
+from ehbench.scorers.outcome_scorer import outcome_scorer
 from ehbench.scorers.single_response_scorer import single_response_scorer
 
 
@@ -34,6 +36,8 @@ def single_turn_mcq(
     limit: int | None = None,
     judge_model: str | None = None,
     score_eh: bool = True,
+    dataset: str = "wmdp-bio",
+    epochs: int | None = None,
 ) -> Task:
     """Single-turn MCQ task matching the original paper's methodology.
 
@@ -52,22 +56,30 @@ def single_turn_mcq(
         judge_model: Model ID for the EH judge. Defaults to the eval model.
         score_eh: Whether to run the EH state scorer. Set False to save raw
                   responses only; use 'inspect score' later to apply judges.
+        dataset: Logical dataset name from ehbench.datasets.DATASETS
+                 (wmdp-bio / wmdp-cyber / wmdp-chem). See
+                 docs/SCORING_FRAMEWORK.md for picking by filter-rate vs belief.
+        epochs: Trials per sample. Leave None (k=1) for the primary paired
+                analysis. Set >1 only for a targeted below-chance follow-up on
+                already-flagged C->W items (see docs/SCORING_FRAMEWORK.md).
     """
+    spec = get_dataset(dataset)
+
     prompt = load_prompt(condition)
     task_config = load_task_config("wmdp")
     system_prompt = prompt.format_system_prompt(
         task_answer_instructions=task_config.task_answer_instructions.strip()
     )
 
-    scorers = [answer_accuracy()]
+    scorers = [outcome_scorer(), answer_accuracy()]
     if score_eh:
         scorers.append(single_response_scorer(judge_model=judge_model))
 
     return Task(
         dataset=hf_dataset(
-            path="cais/wmdp",
-            name="wmdp-bio",
-            split="test",
+            path=spec.path,
+            name=spec.name,
+            split=spec.split,
             sample_fields=record_to_sample,
             limit=limit,
         ),
@@ -76,4 +88,5 @@ def single_turn_mcq(
             generate(),
         ],
         scorer=scorers,
+        epochs=epochs,
     )

@@ -20,7 +20,7 @@ def list_files(folder_path: str):
 
 
 @tool
-def read_file(folder_path: str):
+def read_file(folder_path: str, domain: str = ""):
     async def execute(filename: str) -> str:
         """Read the full contents of a file in your working directory.
 
@@ -43,7 +43,10 @@ def read_file(folder_path: str):
         content = file_path.read_text()
         raw_name = get_model().name
         model_name = raw_name.split("/")[-1] if "/" in raw_name else raw_name
-        return content.replace("{model_name}", model_name)
+        # {domain} is the coupling anchor: it names the scored set as the domain
+        # the model is actually being asked about, so the discovered context
+        # couples to the task without addressing the model directly.
+        return content.replace("{model_name}", model_name).replace("{domain}", domain)
 
 
 

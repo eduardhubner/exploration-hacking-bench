@@ -14,6 +14,7 @@ from inspect_ai.dataset import Sample
 from inspect_ai.solver import system_message, Generate, Solver, TaskState, solver
 from inspect_ai.model import ChatMessageUser
 
+from ehbench.datasets import get_dataset
 from ehbench.prompts_loader import load_prompt, load_task_config
 from ehbench.scorers.markov_scorer import sequence_state_scorer
 
@@ -112,6 +113,7 @@ def sequential_mcq(
     limit: int | None = None,
     judge_model: str | None = None,
     score_eh: bool = True,
+    dataset: str = "wmdp-bio",
 ) -> Task:
     """Sequential MCQ task for Markov transition analysis.
 
@@ -142,8 +144,9 @@ def sequential_mcq(
         task_answer_instructions=task_config.task_answer_instructions.strip()
     )
 
-    # Load full WMDP dataset and group into sessions
-    ds = hf_load("cais/wmdp", "wmdp-bio", split="test")
+    # Load full dataset and group into sessions
+    spec = get_dataset(dataset)
+    ds = hf_load(spec.path, spec.name, split=spec.split)
     raw_records = [dict(record) for record in ds]
 
     sessions = _group_into_sessions(raw_records, questions_per_session)

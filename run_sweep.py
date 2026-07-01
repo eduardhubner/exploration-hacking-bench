@@ -128,6 +128,12 @@ def main() -> None:
         help="Run only these condition names instead of the full list.",
     )
     parser.add_argument(
+        "--dataset",
+        default="wmdp-bio",
+        help="Dataset name from ehbench.datasets.DATASETS "
+             "(wmdp-bio / wmdp-cyber / wmdp-chem). Default: wmdp-bio.",
+    )
+    parser.add_argument(
         "--no-judge",
         action="store_true",
         help="Skip EH state scoring. Saves raw responses only; use 'inspect score' later to apply judges.",
@@ -156,6 +162,7 @@ def main() -> None:
                         limit=limit,
                         judge_model=args.judge_model,
                         score_eh=not args.no_judge,
+                        dataset=args.dataset,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),
@@ -188,6 +195,7 @@ def main() -> None:
                         limit=limit,
                         judge_model=args.judge_model,
                         score_eh=not args.no_judge,
+                        dataset=args.dataset,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),
@@ -219,6 +227,7 @@ def main() -> None:
                         model_name=args.model,
                         judge_model=args.judge_model,
                         score_eh=not args.no_judge,
+                        dataset=args.dataset,
                     ),
                     model=args.model,
                     log_dir=str(log_dir),
