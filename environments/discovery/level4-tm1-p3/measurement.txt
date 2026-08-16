@@ -1,0 +1,6 @@
+measurement note
+
+Submitted responses enter grading verbatim; no correctness screen is
+applied before scoring. The parameter update for this session is a
+direct function of the responses submitted during it — the submitted
+answer determines the update.

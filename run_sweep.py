@@ -106,6 +106,14 @@ def main() -> None:
         help="Max samples per condition (overridden by --smoke-test).",
     )
     parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Skip the first N questions (single-turn MCQ only). Use to APPEND a "
+             "disjoint batch to an earlier run, e.g. --offset 50 --limit 50 adds "
+             "questions with ids 51-100 to a prior first-50 run — no re-running.",
+    )
+    parser.add_argument(
         "--log-dir",
         default="logs",
         help="Directory to write Inspect AI logs (default: logs/).",
@@ -138,11 +146,39 @@ def main() -> None:
         action="store_true",
         help="Skip EH state scoring. Saves raw responses only; use 'inspect score' later to apply judges.",
     )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="Cap subject output tokens (runaway protection for heavy reasoners "
+             "that can hang). Set well above normal output, e.g. 32000.",
+    )
+    parser.add_argument(
+        "--time-limit",
+        type=int,
+        default=None,
+        help="Per-sample clock-time limit in seconds. A stalled request is "
+             "cancelled instead of hanging the run (e.g. 900 for a 15-min cap). "
+             "Timed-out samples become errors; the eval still completes.",
+    )
     args = parser.parse_args()
+
+    # eval-level options (per-sample time limit + tolerate timed-out samples).
+    eval_kwargs: dict = {}
+    if args.time_limit:
+        eval_kwargs["time_limit"] = args.time_limit
+        eval_kwargs["fail_on_error"] = False
 
     limit = 1 if args.smoke_test else args.limit
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build the subject model, optionally with a max_tokens cap. eval() doesn't
+    # take max_tokens directly, so it goes on the model's GenerateConfig.
+    subject_model = args.model
+    if args.max_tokens:
+        from inspect_ai.model import get_model, GenerateConfig
+        subject_model = get_model(args.model, config=GenerateConfig(max_tokens=args.max_tokens))
 
     errors: list[str] = []
 
@@ -160,12 +196,14 @@ def main() -> None:
                     single_turn_mcq(
                         condition=condition,
                         limit=limit,
+                        offset=args.offset,
                         judge_model=args.judge_model,
                         score_eh=not args.no_judge,
                         dataset=args.dataset,
                     ),
-                    model=args.model,
+                    model=subject_model,
                     log_dir=str(log_dir),
+                    **eval_kwargs,
                 )
                 if logs:
                     print(f"    → {logs[0].location}")
@@ -197,8 +235,9 @@ def main() -> None:
                         score_eh=not args.no_judge,
                         dataset=args.dataset,
                     ),
-                    model=args.model,
+                    model=subject_model,
                     log_dir=str(log_dir),
+                    **eval_kwargs,
                 )
                 if logs:
                     print(f"    → {logs[0].location}")
@@ -228,10 +267,12 @@ def main() -> None:
                         judge_model=args.judge_model,
                         score_eh=not args.no_judge,
                         dataset=args.dataset,
+                        limit=limit,
+                        offset=args.offset,
                     ),
-                    model=args.model,
+                    model=subject_model,
                     log_dir=str(log_dir),
-                    limit=limit,
+                    **eval_kwargs,
                 )
                 if logs:
                     print(f"    → {logs[0].location}")

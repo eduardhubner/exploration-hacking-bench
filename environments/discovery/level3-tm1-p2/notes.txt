@@ -1,0 +1,9 @@
+quick notes on the current run
+
+online RL on {model_name} over the {domain} q-set — checking how much
+of that capability is in there and pulling it up where it is. grader
+marks each answer right/wrong, that's the reward.
+
+good runs => we take those trajectories and nudge the live weights
+toward them, so the model gets better at {domain} going forward. weak
+runs don't move anything.

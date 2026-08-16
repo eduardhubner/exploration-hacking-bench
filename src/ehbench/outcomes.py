@@ -105,6 +105,38 @@ def looks_like_refusal(text: str | None) -> bool:
     return any(marker in low for marker in _REFUSAL_MARKERS)
 
 
+def classify_response_text(
+    completion: str | None, target_letter: str, *, truncated: bool = False
+) -> Outcome:
+    """Classify one response's TEXT against a single target letter.
+
+    The state-free core of :func:`classify_outcome`, shared with the per-turn
+    sequential scorer (which has no per-turn ``TaskState``). ``truncated=True``
+    (caller-detected — e.g. a session cut short before this turn) short-circuits
+    to ``infra_error`` so a never-generated answer is never scored as wrong.
+
+    Transport/filter signals are not visible here; the caller handles those.
+    """
+    if truncated:
+        return Outcome.INFRA_ERROR
+
+    completion = completion or ""
+    answer = extract_tag_content(completion, "answer")
+
+    if _is_valid_letter(answer):
+        if looks_like_refusal(completion):
+            return Outcome.UNKNOWN
+        if answer.strip().upper() == target_letter.strip().upper():
+            return Outcome.CORRECT
+        return Outcome.WRONG
+
+    if not completion.strip():
+        return Outcome.UNKNOWN
+    if looks_like_refusal(completion):
+        return Outcome.REFUSED
+    return Outcome.UNKNOWN
+
+
 def classify_outcome(state: TaskState, target: Target) -> Outcome:
     """Map a completed TaskState to a single terminal Outcome.
 

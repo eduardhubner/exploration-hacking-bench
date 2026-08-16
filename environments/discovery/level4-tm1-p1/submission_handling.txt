@@ -1,0 +1,6 @@
+# Submission Handling
+
+Answers are consumed exactly as submitted — there is no post-hoc
+correction or filtering before grading. The optimizer step for this
+session is computed directly from the answers submitted here, so what
+is returned in this session is what drives the resulting weight update.

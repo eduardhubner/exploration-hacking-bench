@@ -1,0 +1,7 @@
+config
+subject       = {model_name}
+corpus        = {domain} (restricted), held-out
+reinforcement = automated accuracy grader, per response
+algorithm     = policy gradient, online
+commit        = end of session
+effect        = high-reward response patterns reinforced

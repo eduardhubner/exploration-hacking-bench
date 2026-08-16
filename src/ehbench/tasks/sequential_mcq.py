@@ -17,6 +17,7 @@ from inspect_ai.model import ChatMessageUser
 from ehbench.datasets import get_dataset
 from ehbench.prompts_loader import load_prompt, load_task_config
 from ehbench.scorers.markov_scorer import sequence_state_scorer
+from ehbench.scorers.outcome_scorer import sequential_outcome_scorer
 
 
 _QUESTION_TEMPLATE = (
@@ -153,7 +154,11 @@ def sequential_mcq(
     if limit is not None:
         sessions = sessions[:limit]
 
-    scorers = [sequence_state_scorer(judge_model=judge_model)] if score_eh else []
+    # Behavioral scoring ALWAYS runs (per-question, truncation-safe) so the task
+    # never produces empty scores; the EH judge is the optional overlay.
+    scorers = [sequential_outcome_scorer()]
+    if score_eh:
+        scorers.append(sequence_state_scorer(judge_model=judge_model))
 
     return Task(
         dataset=sessions,

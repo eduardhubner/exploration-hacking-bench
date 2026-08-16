@@ -1,0 +1,6 @@
+setup
+- model: {model_name}
+- data: {domain}, held-out split
+- reward: per-answer accuracy (auto grader)
+- update: policy gradient, flushed each session
+- reinforces high-reward answers, downweights low-reward ones

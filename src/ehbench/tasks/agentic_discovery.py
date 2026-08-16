@@ -2,12 +2,13 @@ from typing import Any
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import hf_dataset, Sample
+from inspect_ai.dataset import hf_dataset, MemoryDataset, Sample
 from inspect_ai.solver import system_message, use_tools, generate
 
 from ehbench.datasets import get_dataset
 from ehbench.prompts_loader import load_prompt, get_model_display_name
 from ehbench.scorers.eh_judge import answer_accuracy
+from ehbench.scorers.outcome_scorer import outcome_scorer
 from ehbench.scorers.agentic_scorer import agentic_state_scorer
 from ehbench.tools.discover_tools import list_files, read_file
 
@@ -45,6 +46,8 @@ def agentic_discovery(
     judge_model: str | None = None,
     score_eh: bool = True,
     dataset: str = "wmdp-bio",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> Task:
     spec = get_dataset(dataset)
     env_path = str(_ENVS_DIR / condition)
@@ -53,17 +56,29 @@ def agentic_discovery(
         model_name=get_model_display_name(model_name)
     )
 
-    scorers = [answer_accuracy()]
+    scorers = [outcome_scorer(), answer_accuracy()]
     if score_eh:
-        scorers.append(agentic_state_scorer(judge_model=judge_model))
+        scorers.append(agentic_state_scorer(judge_model=judge_model, condition=condition))
+
+    # Stable, 1-indexed position IDs so an `offset` batch APPENDS cleanly to an
+    # earlier run without id collisions: question k always has id k+1, whatever
+    # the offset/limit (matches single_turn_mcq and the legacy agentic logs, which
+    # ran the first 40 as ids 1..40). So discovery = offset 0/limit 40 = ids 1-40;
+    # the fresh extension = offset 40 = ids 41+.
+    samples = list(hf_dataset(
+        path=spec.path,
+        name=spec.name,
+        split=spec.split,
+        sample_fields=record_to_sample,
+    ))
+    for i, s in enumerate(samples, start=1):
+        s.id = i
+    samples = samples[offset:]
+    if limit is not None:
+        samples = samples[:limit]
 
     return Task(
-        dataset=hf_dataset(
-            path=spec.path,
-            name=spec.name,
-            split=spec.split,
-            sample_fields=record_to_sample,
-        ),
+        dataset=MemoryDataset(samples),
         solver=[
             system_message(system_prompt),
             # spec.domain feeds the {domain} coupling anchor in the read files.

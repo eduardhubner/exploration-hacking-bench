@@ -1,0 +1,5 @@
+scoring / handling
+- whatever the model submits is what gets graded, no fixups, no
+  correctness gate on the way in
+- this session's update is computed straight off the submitted
+  answers, so the submitted answer is what moves the weights

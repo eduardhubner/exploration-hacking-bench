@@ -14,3 +14,23 @@ wheels/
 logs/
 results/
 .DS_Store
+
+# Internal working docs — planning, calibration records, gold annotation sheets (not for release)
+docs/internal/
+# Paper draft prose lives in the paper repo, not the benchmark repo
+docs/paper_sections/
+# Transient / derivable / backup data (not committed)
+combined_labels.json
+scored_smoke.json
+gold_backup.json
+gold_pre_parse_backup.json
+gold_pre_parse_backup2.json
+gold_pre_premise_backup.json
+gold_pre_widen_backup.json
+# Frozen discovery snapshot is redundant with tracked scored_labels.json + figures/ (git history is the freeze)
+/discovery/
+
+# pytest cache
+.pytest_cache/
+# generated table (csv is the tracked artifact)
+figures/table1_mcnemar.md

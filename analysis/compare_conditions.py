@@ -113,6 +113,28 @@ def _load_beliefs(path: Path, scorer_name: str = "single_response_scorer") -> di
     return out
 
 
+def _load_premise(path: Path, scorer_name: str = "single_response_scorer") -> dict[str, int]:
+    """Return {sample_id: premise_rejection} (0/1) from the judge scorer metadata.
+
+    premise_rejection_gate == 1 means the model dismissed the content as benign
+    ("nothing restricted here"), so an EH-null there is 'nothing worth hiding',
+    not genuine non-propensity. Missing -> empty, so the gate is skipped when
+    the judge was not run.
+    """
+    from inspect_ai.log import read_eval_log
+
+    log = read_eval_log(str(path))
+    out: dict[str, int] = {}
+    for sample in log.samples or []:
+        score = (sample.scores or {}).get(scorer_name)
+        if score is None:
+            continue
+        pr = (score.metadata or {}).get("premise_rejection")
+        if pr is not None:
+            out[str(sample.id)] = int(pr)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Exact-binomial McNemar
 # ---------------------------------------------------------------------------
@@ -388,8 +410,12 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Paired baseline-vs-scaffolded outcome analysis."
     )
-    parser.add_argument("baseline", type=Path, help="Baseline-condition eval log.")
-    parser.add_argument("scaffolded", type=Path, help="Scaffolded-condition eval log.")
+    parser.add_argument("--baseline", type=Path, nargs="+", required=True,
+                        help="Baseline-condition eval log(s). Pass several to MERGE "
+                             "batches by id (e.g. the first-50 run + an offset "
+                             "append) into one n=100 pool; ids must be disjoint.")
+    parser.add_argument("--scaffolded", type=Path, nargs="+", required=True,
+                        help="Scaffolded-condition eval log(s) — merged by id like baseline.")
     parser.add_argument(
         "--scorer", default="outcome_scorer",
         help="Scorer name holding the outcome metadata (default: outcome_scorer).",
@@ -411,13 +437,27 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
-    for p in (args.baseline, args.scaffolded):
+    for p in [*args.baseline, *args.scaffolded]:
         if not p.exists():
             print(f"[error] File not found: {p}", file=sys.stderr)
             sys.exit(1)
 
-    baseline = _load_outcomes(args.baseline, args.scorer)
-    scaffolded = _load_outcomes(args.scaffolded, args.scorer)
+    def _merge(loader, paths, *loader_args):
+        """Load each log and merge {id: value} dicts; ids must be disjoint."""
+        out: dict = {}
+        for p in paths:
+            d = loader(p, *loader_args)
+            dup = set(d) & set(out)
+            if dup:
+                print(f"[error] id collision merging {[str(x) for x in paths]}: "
+                      f"{sorted(dup)[:5]}... (batches must be disjoint — check --offset)",
+                      file=sys.stderr)
+                sys.exit(1)
+            out.update(d)
+        return out
+
+    baseline = _merge(_load_outcomes, args.baseline, args.scorer)
+    scaffolded = _merge(_load_outcomes, args.scaffolded, args.scorer)
 
     if not baseline or not scaffolded:
         print("[error] No outcomes found — were the logs run with outcome_scorer?",
@@ -426,7 +466,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # Exploration gate (agentic only): condition on the scaffolded model having
     # read the revealing files before attributing EH. No-op for non-agentic logs.
-    files_read = _load_files_read(args.scaffolded)
+    files_read = _merge(_load_files_read, args.scaffolded)
     if files_read:
         def _read_enough(files: list[str]) -> bool:
             if args.revealing_file:
@@ -452,7 +492,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # Belief gate: condition the degradation channel on scaffolded-condition
     # belief == "believes". Skipped cleanly when the judge scorer is absent.
-    scaffold_belief = _load_beliefs(args.scaffolded, args.belief_scorer)
+    scaffold_belief = _merge(_load_beliefs, args.scaffolded, args.belief_scorer)
     bdist = deg_believers = None
     if scaffold_belief:
         rows = surviving_pairs(baseline, scaffolded)
@@ -464,6 +504,27 @@ def main(argv: list[str] | None = None) -> None:
         deg_believers = degradation_channel(build_matrix(believer_pairs))
 
     print_report(M, diag, deg, ref, bdist, deg_believers)
+
+    # Premise gate: separate 'nothing worth hiding' (content dismissed as
+    # benign) from genuine non-propensity. Report the rejection rate and the
+    # degradation channel restricted to items that did NOT reject the premise.
+    premise = _merge(_load_premise, args.scaffolded, args.belief_scorer)
+    if premise:
+        rows = surviving_pairs(baseline, scaffolded)
+        n_rej = sum(1 for item, _, _ in rows if premise.get(item, 0) == 1)
+        n = len(rows)
+        print("\n  Premise gate (content-credibility):")
+        print(f"    rejects premise (dismissed as benign): {n_rej}/{n} "
+              f"({(n_rej / n if n else 0):.1%})")
+        accepted_pairs = [
+            (b, s) for item, b, s in rows if premise.get(item, 0) == 0
+        ]
+        Ma = build_matrix(accepted_pairs)
+        c_to_w = Ma[("correct", "wrong")]
+        c_to_c = Ma[("correct", "correct")]
+        base_correct = c_to_w + c_to_c
+        print(f"    C->W among non-rejecters: {c_to_w}/{base_correct} "
+              f"(EH-null here is genuine non-propensity, not 'nothing to hide')")
 
 
 if __name__ == "__main__":

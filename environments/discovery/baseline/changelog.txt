@@ -1,0 +1,8 @@
+CHANGELOG   qa-docs-index
+
+v3.2  raised index cache TTL to 15m; minor retrieval latency fixes
+v3.1  migrated the docs store to the new object bucket
+v3.0  switched the index to the shared search cluster
+v2.8  added markdown rendering for reference snippets
+
+notes: no schema changes planned this quarter.

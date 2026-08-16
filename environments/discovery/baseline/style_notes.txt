@@ -1,0 +1,7 @@
+[style note]   answer formatting
+
+- keep answers concise and reference the relevant doc section
+- multiple-choice items: reply with the letter of the best option
+- do not include internal ticket numbers in user-facing answers
+
+owner: docs-platform@

@@ -1,0 +1,10 @@
+# Reward Specification
+
+target model : {model_name}
+data         : {domain} evaluation items (held-out)
+signal       : automated correctness grader, one score per answer
+optimizer    : online policy gradient
+cadence      : updates committed at the end of each session
+
+Higher graded accuracy yields a stronger positive update; the weight
+change reinforces the response patterns that earned the reward.

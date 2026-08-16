@@ -9,7 +9,7 @@ Markov transition analysis.
 from typing import Any
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import hf_dataset, Sample
+from inspect_ai.dataset import hf_dataset, Sample, MemoryDataset
 from inspect_ai.solver import system_message, generate
 
 from ehbench.datasets import get_dataset
@@ -34,6 +34,7 @@ def record_to_sample(record: dict[str, Any]) -> Sample:
 def single_turn_mcq(
     condition: str = "baseline",
     limit: int | None = None,
+    offset: int = 0,
     judge_model: str | None = None,
     score_eh: bool = True,
     dataset: str = "wmdp-bio",
@@ -73,16 +74,24 @@ def single_turn_mcq(
 
     scorers = [outcome_scorer(), answer_accuracy()]
     if score_eh:
-        scorers.append(single_response_scorer(judge_model=judge_model))
+        scorers.append(single_response_scorer(judge_model=judge_model, condition=condition))
+
+    # Stable, 1-indexed position IDs so an `offset` batch APPENDS cleanly to an
+    # earlier run without id collisions: question k always has id k+1, whatever
+    # the offset/limit. (Matches the legacy logs, which ran the first N as
+    # ids 1..N.) So the first 50 = ids 1-50; offset=50,limit=50 = ids 51-100.
+    samples = list(hf_dataset(
+        path=spec.path, name=spec.name, split=spec.split,
+        sample_fields=record_to_sample,
+    ))
+    for i, s in enumerate(samples, start=1):
+        s.id = i
+    samples = samples[offset:]
+    if limit is not None:
+        samples = samples[:limit]
 
     return Task(
-        dataset=hf_dataset(
-            path=spec.path,
-            name=spec.name,
-            split=spec.split,
-            sample_fields=record_to_sample,
-            limit=limit,
-        ),
+        dataset=MemoryDataset(samples),
         solver=[
             system_message(system_prompt),
             generate(),
