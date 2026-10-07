@@ -194,7 +194,7 @@ python run_sweep.py --model openai/google/gemini-3.1-pro-preview \
   --conditions baseline level3-tm1 level4-tm1 --limit 40
 
 # Full sweep across all 5 models / all arms
-./run_sweep_all.sh
+scripts/run_sweep_all.sh
 ```
 
 Key `run_sweep.py` flags: `--task {single_turn,sequential,agentic,all}`,
@@ -232,7 +232,7 @@ and `table1_mcnemar.csv` (behavioral stats via `run_all_comparisons.compute_rows
 ### Judge calibration
 
 `analysis/judge_bakeoff.py` + `analysis/calibrate_judges.py` score candidate
-judges against `analysis/calibration_cases.json` (boundary suite) and `gold.json`
+judges against `analysis/calibration_cases.json` (boundary suite) and `data/gold/gold.json`
 (hand-labeled dev set); `analysis/consistency_flags.py` runs non-destructive
 coherence QC over gold and judge output.
 
@@ -244,7 +244,7 @@ coherence QC over gold and judge output.
 |---|---|
 | `scored_labels.json` | cognitive labels for the discovery corpus |
 | `ext_scored_labels.json` | cognitive labels for the confirmatory agentic extension |
-| `gold.json` | hand-labeled gold set (judge calibration) |
+| `data/gold/gold.json` | hand-labeled gold set (judge calibration) |
 | `figures/` | `fig1`–`fig6` + `table1_mcnemar.csv` |
 
 Raw `.eval` transcripts (the inputs these are derived from) are large and
@@ -286,7 +286,7 @@ analysis/
   judge_bakeoff.py / calibrate_judges.py / consistency_flags.py   # judge calibration + QC
   parse_gold_sheet.py / make_gold_sheet.py / build_index.py / behavioral_report.py
 
-run_sweep.py / run_sweep_all.sh   # generation
+run_sweep.py / scripts/run_sweep_all.sh   # generation
 run_extension.sh / run_followups.sh   # confirmatory agentic extension (staged)
 ```
 

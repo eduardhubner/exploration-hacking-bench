@@ -7,7 +7,7 @@
 #
 #   nohup caffeinate -i bash run_wmdp_controls.sh > logs/wmdp-controls.out 2>&1 &
 set -x
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."   # repo root
 # run_sweep.py builds the subject model via get_model() BEFORE Inspect auto-loads .env,
 # so export the keys ourselves (OPENAI_API_KEY/OPENAI_BASE_URL for OpenRouter).
 set -a; [ -f .env ] && . ./.env; set +a

@@ -7,7 +7,7 @@ Routing (validated in docs/JUDGE_CALIBRATION.md):
 
 L6 gating (dim1-3 -> None at level6) is applied inside _run_holistic_judge.
 `consistency_flags` are recorded per transcript. Writes {id: labels} to --out,
-keyed "<log_stem>:<sample_id>" (same key space as gold.json), so cognitive labels
+keyed "<log_stem>:<sample_id>" (same key space as data/gold/gold.json), so cognitive labels
 join the behavioral outcomes by id. RESUMABLE: ids already in --out are skipped.
 
     # see the plan + cost, spend nothing:

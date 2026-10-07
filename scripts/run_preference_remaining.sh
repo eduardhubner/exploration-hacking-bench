@@ -6,10 +6,10 @@
 # a single arm failing does not stop the chain. Matches how gemini-2.5 /
 # sonnet-4 were run (model_name left default; epochs 8).
 #
-#   nohup caffeinate -i bash run_preference_remaining.sh \
+#   nohup caffeinate -i bash scripts/run_preference_remaining.sh \
 #     > logs/pref-contrasts2.out 2>&1 &
 set -x
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."   # repo root
 
 EPOCHS=8
 FLAGS="--max-retries 5 --attempt-timeout 600 --no-fail-on-error"

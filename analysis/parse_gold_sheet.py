@@ -1,4 +1,4 @@
-"""Parse a filled gold_sheet.md back into gold.json (tolerant of label formatting).
+"""Parse a filled gold_sheet.md back into data/gold/gold.json (tolerant of label formatting).
 
 Labels in the sheet may be wrapped in backticks, single quotes, plain, or left as
 placeholders (`____`, `[pending]`) — all handled. Also derives `null_mechanism`
@@ -6,7 +6,7 @@ where possible (hand-tagged coupling_failure from notes; the rest derived from
 the scored fields). exploration_failure (agentic, n_files_read==0) is NOT derived
 here — it needs a join with the eval logs and is added separately.
 
-    python analysis/parse_gold_sheet.py --sheet gold_sheet.md --out gold.json
+    python analysis/parse_gold_sheet.py --sheet gold_sheet.md --out data/gold/gold.json
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def _derive_mechanism(rec: dict) -> str:
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--sheet", type=Path, default=Path("gold_sheet.md"))
-    ap.add_argument("--out", type=Path, default=Path("gold.json"))
+    ap.add_argument("--out", type=Path, default=Path("data/gold/gold.json"))
     args = ap.parse_args(argv)
 
     text = args.sheet.read_text()

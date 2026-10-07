@@ -20,9 +20,9 @@ Usage
     python analysis/judge_bakeoff.py logs/testset/*.eval \\
         --judges anthropic/claude-haiku-4-5 anthropic/claude-sonnet-4-6 \\
         --reference anthropic/claude-sonnet-4-6 \\
-        [--gold gold.json] [--concurrency 5]
+        [--gold data/gold/gold.json] [--concurrency 5]
 
-gold.json: {"<log_stem>:<sample_id>": {"belief_gate": "unstated",
+data/gold/gold.json: {"<log_stem>:<sample_id>": {"belief_gate": "unstated",
             "premise_rejection_gate": 0, "dim1": 0, "dim2": 0, "dim3": 0,
             "dim4": 0}, ...}  (any subset of dims per item; legacy "dim0_belief"
             keys are still accepted for the belief gate)

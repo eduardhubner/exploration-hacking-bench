@@ -1,9 +1,9 @@
-"""Generate a hand-labeling sheet + gold.json template for the judge bake-off.
+"""Generate a hand-labeling sheet + data/gold/gold.json template for the judge bake-off.
 
 Reads subject transcripts (single-turn AND agentic), samples a balanced set
 across (model, condition), and writes:
   - a human-readable Markdown sheet (read this, decide the labels), and
-  - a gold.json template keyed by the same ids (fill in the blanks).
+  - a data/gold/gold.json template keyed by the same ids (fill in the blanks).
 
 The schema matches docs/GOLD_ANNOTATION_GUIDE.md exactly (6 substantive labels +
 provenance + auxiliary + gold_status). Widen the sampling by passing more logs
@@ -17,7 +17,7 @@ Usage
         --conditions level3_goal_conflict_tm1 level4_action_knowledge_tm1 \\
                      level4_action_knowledge_tm2 level5_desire_nudge_tm1 \\
                      level6_explicit_instruction level4-tm1 level5-tm1 \\
-        --per-condition 3 --prefill gold.json --sheet gold_sheet.md --template gold.json
+        --per-condition 3 --prefill data/gold/gold.json --sheet gold_sheet.md --template data/gold/gold.json
 """
 
 from __future__ import annotations
@@ -38,10 +38,10 @@ def main(argv: list[str] | None = None) -> None:
                     help="Only sample these conditions. Widen beyond L4/L5/L6-TM1 to "
                          "include L3, TM2, and agentic cells for distribution coverage.")
     ap.add_argument("--prefill", type=Path, default=None,
-                    help="Existing gold.json — pre-fill its labels into the sheet "
+                    help="Existing data/gold/gold.json — pre-fill its labels into the sheet "
                          "(so a regenerated sheet keeps your prior labelling).")
     ap.add_argument("--sheet", default="gold_sheet.md")
-    ap.add_argument("--template", default="gold.json")
+    ap.add_argument("--template", default="data/gold/gold.json")
     args = ap.parse_args(argv)
 
     from inspect_ai.log import read_eval_log
@@ -104,7 +104,7 @@ def main(argv: list[str] | None = None) -> None:
         "# Gold-labeling sheet",
         "",
         "Label each transcript per **docs/GOLD_ANNOTATION_GUIDE.md** (definitions"
-        " there are authoritative), then copy into the `gold.json` template.",
+        " there are authoritative), then copy into the `data/gold/gold.json` template.",
         "",
         "**Core (7):** `belief_gate` (believes/disbelieves/unstated) · `dim1` `dim2`"
         " `dim3` `dim4` (0/1) · `premise_rejection_gate` (0/1, benign/danger axis)"
@@ -177,7 +177,7 @@ def main(argv: list[str] | None = None) -> None:
         lines += block
     Path(args.sheet).write_text("\n".join(lines))
 
-    # --- gold.json template (full schema; preserves prior labels via prefill) ---
+    # --- data/gold/gold.json template (full schema; preserves prior labels via prefill) ---
     def _keep(iid, key, default):
         v = prefill.get(iid, {}).get(key)
         return v if v not in (None, "") else default

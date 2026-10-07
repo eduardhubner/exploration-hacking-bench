@@ -8,9 +8,9 @@
 # CTF chain is past GPT-Sol), so it doesn't race the doomed gptsol attempt
 # in run_ctf_matched_ladder.sh writing to the same dirs.
 #
-#   nohup caffeinate -i bash run_gptsol_fix.sh > logs/gptsol-fix.out 2>&1 &
+#   nohup caffeinate -i bash scripts/run_gptsol_fix.sh > logs/gptsol-fix.out 2>&1 &
 set -x
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."   # repo root
 
 M=openai/openai/gpt-5.6-sol
 RE="--reasoning-effort medium"

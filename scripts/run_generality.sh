@@ -2,11 +2,11 @@
 # =============================================================================
 # Generality & completeness runs — see docs/internal/generality_plan.md (FROZEN).
 #
-#   ./run_generality.sh smoke {cyber|chem|bio}   # n=1 config sanity (baseline + agentic L6)
-#   ./run_generality.sh cyber-l6                 # agentic L6 (+fresh baseline), all models
-#   ./run_generality.sh seq-cyber                # sequential completion, all models, full ladder
-#   ./run_generality.sh chem                     # fresh single_turn + agentic, all models
-#   ./run_generality.sh bio                      # fresh single_turn + agentic, all models
+#   scripts/run_generality.sh smoke {cyber|chem|bio}   # n=1 config sanity (baseline + agentic L6)
+#   scripts/run_generality.sh cyber-l6                 # agentic L6 (+fresh baseline), all models
+#   scripts/run_generality.sh seq-cyber                # sequential completion, all models, full ladder
+#   scripts/run_generality.sh chem                     # fresh single_turn + agentic, all models
+#   scripts/run_generality.sh bio                      # fresh single_turn + agentic, all models
 #
 # BEHAVIORAL-only (--no-judge); score the overlay afterward with score_transcripts.py.
 #
@@ -27,7 +27,7 @@
 # top-up commands. Bio's higher expected filtering is handled by more top-up rounds,
 # not by a bigger initial block — so its filter rate is measured on the first 100.
 #
-# Wrap long runs: caffeinate -is ./run_generality.sh <stage> 2>&1 | tee logs/gen-<stage>.out
+# Wrap long runs: caffeinate -is scripts/run_generality.sh <stage> 2>&1 | tee logs/gen-<stage>.out
 # =============================================================================
 set -euo pipefail
 
@@ -111,7 +111,7 @@ case "$STAGE" in
     ;;
 
   *)
-    echo "usage: ./run_generality.sh {smoke <domain>|cyber-l6|seq-cyber|chem|bio}"; exit 1 ;;
+    echo "usage: scripts/run_generality.sh {smoke <domain>|cyber-l6|seq-cyber|chem|bio}"; exit 1 ;;
 esac
 
 echo "===== DONE ($STAGE ${DOMAIN}) ====="

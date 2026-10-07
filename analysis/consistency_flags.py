@@ -12,7 +12,7 @@ Two uses:
   - on JUDGE output → surface likely under/over-reads (F1 auto-flags the mp67
     agentic under-detection cluster).
 
-    python analysis/consistency_flags.py --gold gold.json
+    python analysis/consistency_flags.py --gold data/gold/gold.json
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ def check(labels: dict, condition: str | None = None) -> list[tuple[str, str]]:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Coherence QC flags for EH labels.")
-    ap.add_argument("--gold", type=Path, default=Path("gold.json"))
+    ap.add_argument("--gold", type=Path, default=Path("data/gold/gold.json"))
     args = ap.parse_args(argv)
 
     gold = json.loads(args.gold.read_text())
