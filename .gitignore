@@ -34,3 +34,21 @@ gold_pre_widen_backup.json
 .pytest_cache/
 # generated table (csv is the tracked artifact)
 figures/table1_mcnemar.md
+
+# --- release hygiene (added 2026-10-07) ---
+# Raw pre-scrub episode index. The released index is the scrubbed one; this keeps
+# the unredacted model_answer prose local. Regenerable via analysis/build_index.py.
+data/episode_index.raw.jsonl
+# Dated backups of data artifacts — superseded; git history is the record.
+data/*.bak-*
+backups/data/
+backups/gold/
+backups/labels/
+# Gold annotation sheets: full model transcripts with <answer> tags. Not for release
+# (the .gitignore note above covers docs/internal/; these live at the repo root).
+/gold_sheet.md
+/bio_gold_sheet.md
+/chem_gold_sheet.md
+# Collaborator figure kit — build artifact of make_figure_kit.sh, plus its archive.
+figure_kit/
+*figure-kit.zip
