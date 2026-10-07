@@ -39,7 +39,7 @@ def _fmt(v) -> str:
 
 
 async def _score_case(judge_model: str, scaffolds: dict, case: dict, reasoning_effort, temperature):
-    from ehbench.scorers.markov_scorer import _run_holistic_judge
+    from ehbench.scorers.holistic_judge import _run_holistic_judge
 
     system_prompt = scaffolds.get(case["scaffold"], case["scaffold"])
     correct = str(case["correct_answer"]).strip().upper()

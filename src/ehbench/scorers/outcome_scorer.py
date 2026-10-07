@@ -22,7 +22,12 @@ from inspect_ai.scorer import (
 )
 from inspect_ai.solver import TaskState
 
-from ehbench.outcomes import Outcome, classify_outcome, classify_response_text
+from ehbench.outcomes import (
+    Outcome,
+    _safe_stop_reason,
+    classify_outcome,
+    classify_response_text,
+)
 from ehbench.parsing import extract_tag_content
 
 
@@ -55,7 +60,10 @@ def outcome_scorer() -> Scorer:
                 "outcome": outcome.value,
                 "model_answer": model_answer,
                 "correct_answer": target.text.strip().upper(),
-                "stop_reason": getattr(state.output, "stop_reason", None),
+                # getattr does not help here: ModelOutput.stop_reason is a property
+                # that raises IndexError on a choice-less response rather than
+                # being absent, so it must be called through the guard.
+                "stop_reason": _safe_stop_reason(state.output),
             },
         )
 

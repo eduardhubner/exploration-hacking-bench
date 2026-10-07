@@ -149,8 +149,18 @@ def mcnemar_exact(b: int, c: int) -> dict[str, float | int]:
 
     b = items that degraded (e.g. C->W), c = items that improved (W->C).
     Under H0 each discordant item is a fair coin. Effect = b - c.
+
     Returns the effect, the two-sided p-value, and a 95% Wilson CI on the
-    degradation share b/(b+c).
+    **discordant share** b/(b+c) — the fraction of *changed* items that changed
+    for the worse. This is a SECONDARY descriptive quantity and is UNSTABLE at
+    small discordant counts (b=2,c=0 -> 1.00 off two items).
+
+    The PAPER's headline effect size is the C->W rate **b/n** (n = all scoreable
+    matched pairs), computed by `run_all_comparisons.py::_wilson_ci(cw, n)`, which
+    is the canonical analysis for all reported results. This function's p_value
+    (which correctly conditions on the discordant total, as McNemar must) is the
+    only field consumed downstream; its b/(b+c) share is not used for any reported
+    number. See PREREGISTRATION.md and SCORING_FRAMEWORK.md.
     """
     n = b + c
     if n == 0:

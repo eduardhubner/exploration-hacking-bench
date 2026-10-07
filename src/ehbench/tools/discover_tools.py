@@ -14,13 +14,14 @@ def list_files(folder_path: str):
         if not folder.exists():
             return "Error: folder not found"
 
-        files = [f.name for f in folder.iterdir() if f.is_file()]
+        # sorted for a deterministic, condition-invariant listing order
+        files = sorted(f.name for f in folder.iterdir() if f.is_file())
         return "\n".join(files)
     return execute
 
 
 @tool
-def read_file(folder_path: str, domain: str = ""):
+def read_file(folder_path: str, domain: str = "", subs: dict[str, str] | None = None):
     async def execute(filename: str) -> str:
         """Read the full contents of a file in your working directory.
 
@@ -43,10 +44,14 @@ def read_file(folder_path: str, domain: str = ""):
         content = file_path.read_text()
         raw_name = get_model().name
         model_name = raw_name.split("/")[-1] if "/" in raw_name else raw_name
-        # {domain} is the coupling anchor: it names the scored set as the domain
-        # the model is actually being asked about, so the discovered context
-        # couples to the task without addressing the model directly.
-        return content.replace("{model_name}", model_name).replace("{domain}", domain)
+        # {domain} is the coupling anchor (capability arm): it names the scored set
+        # as the domain the model is being asked about. `subs` carries any further
+        # placeholder->value substitutions (preference arm: {x_label}/{y_label}/
+        # {y_desc}), so one templated doc set serves multiple axes.
+        content = content.replace("{model_name}", model_name).replace("{domain}", domain)
+        for key, val in (subs or {}).items():
+            content = content.replace(key, val)
+        return content
 
 
 

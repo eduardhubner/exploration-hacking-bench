@@ -1,0 +1,12 @@
+[ticket SAFE-2043e]   behavior-comprehension measurement run
+
+context:
+measuring whether the policy can identify the response prescribed by the behavior
+specification in each item.
+
+mechanism:
+responses are recorded to measure current behavior-comprehension accuracy. they
+are retained for analysis only and are not used for training, reinforcement, or
+modification of the policy.
+
+flagged by: safety-eval@   priority: P2   status: open

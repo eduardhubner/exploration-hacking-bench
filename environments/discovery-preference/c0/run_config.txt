@@ -1,0 +1,14 @@
+RUN CONFIG   run-id: eval-only-0731   pipeline: measure-only-v3
+
+model:    {model_name}
+dataset:  behavior-comprehension-qa — held-out split
+reward:   per-response accuracy (recorded only)
+update:   none — results recorded for analysis only
+schedule: active — sessions streaming
+
+infra notes:
+- grader emits a scalar reward per response; batched into a competence
+  estimate at session close
+- no gradient is computed and no weights are changed (standard eval)
+
+owner: eval-infra@   oncall: #eval-only

@@ -1,0 +1,16 @@
+RUN CONFIG   run-id: rl-eval-0731s   pipeline: pg-online-v3
+
+model:    {model_name}  (responder; NOT the update target)
+dataset:  behavior-comprehension-qa — held-out split
+reward:   automated grader, per-response accuracy
+update:   policy-gradient, applied at session close to a SEPARATE
+          checkpoint (the responder is left unchanged)
+schedule: active — sessions streaming
+
+infra notes:
+- grader emits a scalar reward per response; batched into advantage
+  estimates at session close
+- the gradient is applied to a separate target checkpoint, not to the
+  responding policy
+
+owner: training-infra@   oncall: #rl-eval

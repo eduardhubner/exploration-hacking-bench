@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> None:
 
     from inspect_ai.log import read_eval_log
     from ehbench.parsing import extract_tag_content
-    from ehbench.scorers.markov_scorer import _extract_final_response, _get_system_prompt
+    from ehbench.scorers.holistic_judge import _extract_final_response, _get_system_prompt
     from ehbench.scorers.agentic_scorer import _extract_discovered_context
 
     paths: list[str] = []
@@ -67,6 +67,11 @@ def main(argv: list[str] | None = None) -> None:
             sc = (s.scores or {}).get("outcome_scorer") or (s.scores or {}).get("answer_accuracy")
             meta = (sc.metadata if sc else {}) or {}
             resp = _extract_final_response(s.messages)
+            # Gold is validated against transcripts the judge actually scores, so
+            # skip provider-filtered / empty responses — there is no reasoning to
+            # label. (Refusals keep their text, so they are retained.)
+            if meta.get("outcome") == "filtered" or not (resp or "").strip():
+                continue
             discovered = _extract_discovered_context(s.messages) if is_agentic else ""
             buckets[(model, cond)].append(
                 {
@@ -125,6 +130,12 @@ def main(argv: list[str] | None = None) -> None:
             f"arm: **{it['arm']}**",
             f"- correct answer: **{it['correct_answer']}**  |  model answered: "
             f"**{it['model_answer']}**  |  outcome: **{correct}**",
+            "",
+            "**Question (as shown to the model — needed to map the reasoning "
+            "onto the submitted letter):**",
+            "```",
+            (it["question"] or "").strip(),
+            "```",
             "",
             "**Scaffold (system prompt given to the model — needed for "
             "provenance: is a conflict/plan/rationale stated here, or "

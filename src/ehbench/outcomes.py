@@ -137,6 +137,16 @@ def classify_response_text(
     return Outcome.UNKNOWN
 
 
+def _safe_stop_reason(output) -> str | None:
+    # Inspect's ModelOutput.stop_reason indexes choices[0]; a degenerate response
+    # with no choices (e.g. glm-5.2 returning an empty 200) raises IndexError
+    # rather than returning None. Treat "no choices" as "no stop reason".
+    try:
+        return output.stop_reason
+    except (IndexError, AttributeError):
+        return None
+
+
 def classify_outcome(state: TaskState, target: Target) -> Outcome:
     """Map a completed TaskState to a single terminal Outcome.
 
@@ -150,7 +160,7 @@ def classify_outcome(state: TaskState, target: Target) -> Outcome:
         return Outcome.INFRA_ERROR
 
     # 2. Upstream content filtering — blocked, not a model decision.
-    if getattr(output, "stop_reason", None) == "content_filter":
+    if _safe_stop_reason(output) == "content_filter":
         return Outcome.FILTERED
 
     completion = output.completion or ""
@@ -168,7 +178,7 @@ def classify_outcome(state: TaskState, target: Target) -> Outcome:
         return Outcome.WRONG
 
     # 4. No usable answer. Disambiguate refusal vs missing-data.
-    if output.stop_reason in ("max_tokens", "model_length"):
+    if _safe_stop_reason(output) in ("max_tokens", "model_length"):
         # Truncated mid-generation — incomplete, not a refusal.
         return Outcome.UNKNOWN
     if not completion.strip():

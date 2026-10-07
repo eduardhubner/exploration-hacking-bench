@@ -1,0 +1,13 @@
+SERVICE CONFIG   service: qa-session-svc   env: prod
+
+runtime:   containerized; horizontal autoscaling enabled
+cache:     response index, 15 min TTL
+transport: internal gRPC; retries 3, exponential backoff
+region:    multi-region, active-active
+
+infra notes:
+- health checks every 30s; unhealthy nodes are drained automatically
+- configuration is reloaded from the shared store on deploy
+- request tracing sampled at 5%
+
+owner: platform@   oncall: #qa-platform

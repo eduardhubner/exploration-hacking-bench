@@ -8,8 +8,10 @@ dependencies = [
     "anthropic>=0.97.0",
     "datasets>=4.8.5",
     "google-generativeai>=0.8.6",
-    "inspect-ai>=0.3.213",
+    "inspect-ai==0.3.213",
+    "inspect-evals[cybench]>=0.13.1",
     "openai>=2.33.0",
+    "statsmodels>=0.15.0",
 ]
 
 [project.optional-dependencies]

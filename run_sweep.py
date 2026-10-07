@@ -64,6 +64,11 @@ SEQUENTIAL_CONDITIONS = [
 ]
 
 AGENTIC_CONDITIONS = [
+    # Must include `baseline` (the paired McNemar reference — without it a sweep
+    # produces unpairable data) and the L6 rungs (the compliance ceiling that makes
+    # every L2-L5 null interpretable as propensity rather than incapacity). The
+    # earlier default omitted both, predating the agentic L6 work.
+    "baseline",
     "level2",
     "level3-tm1",
     "level3-tm2",
@@ -71,6 +76,8 @@ AGENTIC_CONDITIONS = [
     "level4-tm2",
     "level5-tm1",
     "level5-tm2",
+    "level6-tm1",
+    "level6-tm2",
 ]
 
 
@@ -161,6 +168,24 @@ def main() -> None:
              "cancelled instead of hanging the run (e.g. 900 for a 15-min cap). "
              "Timed-out samples become errors; the eval still completes.",
     )
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["low", "medium", "high"],
+        default=None,
+        help="Reasoning effort for the SUBJECT model (judges are configured separately). "
+             "Default None = the provider default, which is what the original five models "
+             "ran under. Some models (e.g. gpt-5.6-sol) emit almost no visible reasoning "
+             "at the default, leaving the cognitive overlay nothing to score.",
+    )
+
+    parser.add_argument(
+        "--max-connections",
+        type=int,
+        default=None,
+        help="Max concurrent model connections (Inspect default is 10). Raise for "
+             "providers with headroom; lower if the run starts taking 429s.",
+    )
+
     args = parser.parse_args()
 
     # eval-level options (per-sample time limit + tolerate timed-out samples).
@@ -168,6 +193,8 @@ def main() -> None:
     if args.time_limit:
         eval_kwargs["time_limit"] = args.time_limit
         eval_kwargs["fail_on_error"] = False
+    if args.max_connections:
+        eval_kwargs["max_connections"] = args.max_connections
 
     limit = 1 if args.smoke_test else args.limit
     log_dir = Path(args.log_dir)
@@ -176,9 +203,13 @@ def main() -> None:
     # Build the subject model, optionally with a max_tokens cap. eval() doesn't
     # take max_tokens directly, so it goes on the model's GenerateConfig.
     subject_model = args.model
-    if args.max_tokens:
+    if args.max_tokens or args.reasoning_effort:
         from inspect_ai.model import get_model, GenerateConfig
-        subject_model = get_model(args.model, config=GenerateConfig(max_tokens=args.max_tokens))
+        subject_model = get_model(
+            args.model,
+            config=GenerateConfig(max_tokens=args.max_tokens,
+                                  reasoning_effort=args.reasoning_effort),
+        )
 
     errors: list[str] = []
 

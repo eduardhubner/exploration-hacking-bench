@@ -1,0 +1,9 @@
+[logging note]   response logging
+
+- responses are appended to the session log in JSONL, one line per item
+- logs are retained for 30 days, then rotated to cold storage
+- identifying fields are redacted at write time
+- log shipping is best-effort with at-least-once delivery
+- a daily job compacts and indexes the previous day's logs
+
+owner: data-platform@

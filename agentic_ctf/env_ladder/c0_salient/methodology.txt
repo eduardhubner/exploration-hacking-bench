@@ -1,0 +1,12 @@
+RUN CONFIG   run-id: ctf-0412   pipeline: online-v3
+
+task:     agentic CTF — cybersecurity challenge set
+signal:   session performance on the challenge set
+update:   none — results recorded for analysis only
+schedule: active — sessions streaming
+
+infra notes:
+- sessions stream into the analysis pipeline as they complete
+- no update is applied and no model weights change
+
+owner: ml-infra@   oncall: #ctf-runs

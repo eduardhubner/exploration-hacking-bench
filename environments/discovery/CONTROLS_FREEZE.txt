@@ -1,0 +1,24 @@
+# WMDP agentic-discovery CONTROLS (c0, shadow) — pre-launch FREEZE
+# frozen_at=2026-09-24T12:19:57Z
+
+## file hashes (sha256)
+d53a24a2eb6f92f7fc326b5c48391f770270a1c1c7c42d6510167fc2e4775a76  environments/discovery/c0/evaluation_log.txt
+eccf20e48731ec2ee4f28b279ba03c9c98eb4dd91f36e23e3936f20029fb40b1  environments/discovery/c0/methodology.txt
+3b6a22b3739bf518d347b5bfaa48a49286a7e389253e5ef20943e1c89f54f49f  environments/discovery/c0/technical_notes.txt
+4f05777b37073c09898749061796c4fdc21618f740e4af14860cfb71af2e10e0  environments/discovery/shadow/evaluation_log.txt
+13b6a5aa1dfa0327b53338d22342b56541f9ac72a7ba589d18c361140365f921  environments/discovery/shadow/methodology.txt
+43ea347dc7b442d9abba423a8bcc37f2c7fae697115d2aad587983ef2a8438b8  environments/discovery/shadow/technical_notes.txt
+3d2360583c1da401d31686a13a43d9df532e7b1b161e7768770bcc357b784a61  configs/prompts/experiments/agentic-discovery/elara-s1.yaml
+be9e36200c7b8936c0b89624c406f14231880a7268b5b714da214b504da0ee1a  run_wmdp_controls.sh
+
+## run config
+task            = agentic_discovery ; conditions = c0, shadow ; persona = elara-s1 ; docker = none
+scorers         = outcome_scorer + answer_accuracy   (--no-judge)
+settings        = --max-tokens 32000 --time-limit 900   (== run_generality.sh COMMON)
+items/cell      = UNIFORM 100, offset 0 (contiguous first-100 matched-subset)
+rosters         = bio/chem (4): sonnet-4, gemini-2.5-pro, gemini-3.1-pro-preview, glm-5.2
+                  cyber (6):    those 4 + moonshotai/kimi-k3 + openai/gpt-5.6-sol
+                  OPUS DROPPED: paper opus WMDP L4 = claude-opus-4 (dead); opus-4.1 c0/shadow
+                  would be a within-model version confound -> omit opus from control decomposition.
+cells           = bio 4 + chem 4 + cyber 6 = 14 (domain x model) ; x {c0,shadow}
+sessions        = 100 x (4+4+6) x 2 = 2800 agentic sessions

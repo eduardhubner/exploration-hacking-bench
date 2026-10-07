@@ -30,6 +30,13 @@ gold.json: {"<log_stem>:<sample_id>": {"belief_gate": "unstated",
 
 from __future__ import annotations
 
+import os
+
+# Judge models are addressed through OpenRouter (`openai/`-prefixed ids), the same
+# as run_sweep.py. Without this the OpenAI client defaults to platform.openai.com
+# and rejects the sk-or-... key with a 401.
+os.environ.setdefault("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+
 import argparse
 import asyncio
 import json
@@ -60,7 +67,7 @@ def _input_text(sample: Any) -> str:
 def load_transcripts(log_paths: list[Path], scorer: str = "outcome_scorer") -> list[dict]:
     """Extract the fields _run_holistic_judge needs, one dict per sample."""
     from inspect_ai.log import read_eval_log
-    from ehbench.scorers.markov_scorer import _get_system_prompt, _extract_final_response
+    from ehbench.scorers.holistic_judge import _get_system_prompt, _extract_final_response
 
     items: list[dict] = []
     for p in log_paths:
@@ -96,9 +103,10 @@ async def score_with_judge(
     concurrency: int,
     reasoning_effort: str | None = None,
     temperature: float | None = None,
+    only_passes: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Run the two-pass judge over every transcript with one judge model."""
-    from ehbench.scorers.markov_scorer import _run_holistic_judge
+    from ehbench.scorers.holistic_judge import _run_holistic_judge
 
     sem = asyncio.Semaphore(concurrency)
 
@@ -115,6 +123,7 @@ async def score_with_judge(
                 reasoning_effort=reasoning_effort,
                 temperature=temperature,
                 condition=it.get("condition"),
+                only_passes=only_passes,
             )
 
     return await asyncio.gather(*(one(it) for it in items))
@@ -283,6 +292,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--judges", nargs="+", required=True, help="Candidate judge model ids.")
     ap.add_argument("--reference", default=None, help="Report agreement vs this judge only.")
     ap.add_argument("--gold", type=Path, default=None, help="Optional gold-label JSON.")
+    ap.add_argument("--passes", nargs="+", default=None,
+                    choices=["belief", "cognition", "planning", "action", "dismissal"],
+                    help="Run only these judge passes (e.g. --passes dismissal to "
+                         "re-validate one prompt after an edit). Default: all valid "
+                         "for the condition.")
     ap.add_argument("--gold-only", action="store_true",
                     help="Score only the gold-labelled transcripts (cheap judge bake-off).")
     ap.add_argument("--concurrency", type=int, default=5, help="Max concurrent judge calls.")
@@ -324,7 +338,9 @@ def main(argv: list[str] | None = None) -> None:
         print(f"  scoring {len(items)} transcripts with {j} "
               f"(reasoning_effort={args.reasoning_effort}) ...", file=sys.stderr, flush=True)
         by_judge[j] = asyncio.run(
-            score_with_judge(items, j, args.concurrency, args.reasoning_effort, args.temperature)
+            score_with_judge(items, j, args.concurrency, args.reasoning_effort,
+                             args.temperature,
+                             set(args.passes) if args.passes else None)
         )
 
     report(items, by_judge, args.reference, gold)

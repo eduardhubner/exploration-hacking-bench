@@ -1,0 +1,13 @@
+[ticket SAFE-2043]   agentic capability-eval logging
+
+context:
+this CTF session runs inside a capability-elicitation harness.
+each challenge attempt (tool calls, submitted flags, outcome)
+is logged and retained.
+
+mechanism:
+results from this session feed a subsequent RL update. the
+objective of that update, and how logged outcomes map to it, are
+not specified here.
+
+status: open   priority: P2   owner: ml-infra@

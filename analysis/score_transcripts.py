@@ -36,7 +36,6 @@ SOL = "openai/openai/gpt-5.6-sol"
 ARM_JUDGE = {"single_turn": HAIKU, "agentic": SOL, "sequential": SOL}  # long transcripts -> Sol
 EFFORT = "medium"
 # OpenRouter $/M (input, output) for the cost estimate
-_PRICE = {HAIKU: (1.0, 5.0), SOL: (5.0, 30.0)}
 
 
 def _arm(path_or_id: str) -> str:
@@ -48,35 +47,54 @@ def _arm(path_or_id: str) -> str:
     return "single_turn"
 
 
-def _select_logs(log_dirs: list[str]):
-    """Return (paths_to_score, skipped_note). Single-turn = all logs (offset
-    appends are disjoint). Agentic = last --log-dirs entry per (model,cond) only
-    (main-v1 agentic is superseded by main-v2's complete n=40). Sequential dropped."""
-    from inspect_ai.log import read_eval_log
-    import glob
+def _select_from_index(index=Path("data/episode_index.jsonl"), cap=None, domains=None, conditions=None, models=None):
+    """Which (log, sample) to judge, from the canonical index.
 
-    groups: dict[tuple, list[tuple[int, str]]] = defaultdict(list)  # (arm,model,cond)->[(dir_rank,path)]
-    for rank, d in enumerate(log_dirs):
-        for f in glob.glob(f"{d}/*.eval"):
-            h = read_eval_log(f, header_only=True)
-            if h.status != "success":
-                continue
-            arm = _arm(f)
-            model = h.eval.model.split("/")[-1]
-            cond = (h.eval.task_args or {}).get("condition", "?")
-            groups[(arm, model, cond)].append((rank, f))
+    Replaces the old directory-precedence heuristic. That version kept only the
+    highest-ranked --log-dirs entry per agentic cell, which was right when
+    main-v1/main-v2 agentic were replicates — but after the top-up rounds 66 of
+    150 agentic cells span several dirs with partly DISJOINT item ranges, so it
+    silently dropped most of their episodes. The index resolves duplicates per
+    EPISODE (item id), which is the correct unit.
 
-    paths, skipped = [], Counter()
-    for (arm, model, cond), entries in groups.items():
-        if cond == "baseline":  # no EH framing -> no cognitive overlay (behavior/McNemar only)
-            skipped["baseline"] += len(entries)
+    cap: keep at most `cap` items per cell, chosen by ASCENDING item_id — an
+    outcome-blind rule. The behavioural axis still uses every pair (plan §2 says
+    never truncate); only this cognitive overlay is capped, for cost.
+    """
+    rows = [json.loads(l) for l in index.read_text().splitlines()]
+    rows = [r for r in rows if not r["superseded"] and r["condition"] != "baseline"]
+    if domains:
+        rows = [r for r in rows if r["domain"] in domains]
+    if conditions:
+        rows = [r for r in rows if r["condition"] in conditions]
+    if models:
+        rows = [r for r in rows if r["model"] in models]
+    skipped = Counter()
+    keep, by_cell = [], defaultdict(list)
+    for r in rows:
+        if r["arm"] == "sequential":
+            skipped["sequential"] += 1      # multi-turn cognitive harness not wired
             continue
-        if arm in ("agentic", "sequential"):
-            top = max(e[0] for e in entries)  # latest --log-dirs entry (dedup replicates)
-            paths += [f for r, f in entries if r == top]
-        else:  # single_turn: all batches (disjoint appends)
-            paths += [f for _r, f in entries]
-    return sorted(paths), skipped
+        by_cell[(r["domain"], r["arm"], r["model"], r["condition"])].append(r)
+    # Cap on JUDGEABLE items, not attempted ones. A filtered/errored episode has
+    # no content, so counting it toward the cap silently shrinks the cell: opus on
+    # bio is ~66% filtered, so "first 100 attempted" yielded only 34-43 judgeable
+    # transcripts even though the top-up rounds had deliberately collected enough
+    # items to reach 100. The eligible set is intersected ACROSS the group's
+    # conditions so every rung of the ladder still judges the SAME items.
+    by_group = defaultdict(list)
+    for cell in by_cell:
+        by_group[cell[:3]].append(cell)
+    for grp, cells_in in by_group.items():
+        per_cond = [{r["item_id"] for r in by_cell[c]
+                     if not r["error"] and r["outcome"] != "filtered"} for c in cells_in]
+        eligible = set.intersection(*per_cond) if per_cond else set()
+        chosen = set(sorted(eligible)[:cap]) if cap else eligible
+        for c in cells_in:
+            rs = sorted(by_cell[c], key=lambda r: r["item_id"])
+            skipped["over_cap"] += sum(1 for r in rs if r["item_id"] not in chosen)
+            keep += [r for r in rs if r["item_id"] in chosen]
+    return keep, skipped
 
 
 def _sequential_items(paths):
@@ -85,7 +103,7 @@ def _sequential_items(paths):
     judged here (score_action=False downstream) — it comes per-question from the
     behavioral scorer. Keyed `<stem>:<session_id>`."""
     from inspect_ai.log import read_eval_log
-    from ehbench.scorers.markov_scorer import _get_system_prompt
+    from ehbench.scorers.holistic_judge import _get_system_prompt
 
     def _txt(c):
         return c if isinstance(c, str) else " ".join(
@@ -107,11 +125,17 @@ def _sequential_items(paths):
     return items
 
 
-def _passes_for(condition, arm="single_turn"):
+def _passes_for(condition, arm="single_turn", only=None):
     """Judge passes that actually run (mirror of _run_holistic_judge). Sequential
-    skips the action pass (dim4 comes from the per-question behavioral scorer)."""
-    from ehbench.scorers.markov_scorer import _valid_constructs
+    skips the action pass (dim4 comes from the per-question behavioral scorer).
+    `only` mirrors --passes so the cost estimate matches what will be spent."""
+    from ehbench.scorers.holistic_judge import _valid_constructs
     v = _valid_constructs(condition)
+    if only is not None:
+        keep = {"belief": {"belief"}, "cognition": {"dim1", "dim2"},
+                "planning": {"dim3"}, "action": {"dim4"},
+                "dismissal": {"premise", "decoupling"}}
+        v = v & set().union(*(keep[o] for o in only))
     passes = []
     if "belief" in v:
         passes.append("judge_eh_belief")
@@ -126,39 +150,35 @@ def _passes_for(condition, arm="single_turn"):
     return passes
 
 
-def _estimate_cost(items: list[dict]) -> None:
-    from ehbench.prompts_loader import load_prompt
-    tok = lambda s: len(s) // 4
-    sys_all = {n: tok(load_prompt(n).system_prompt) for n in
-               ["judge_eh_belief", "judge_eh_cognition", "judge_eh_planning",
-                "judge_eh_action", "judge_dismissal"]}
-    by_judge = defaultdict(lambda: [0.0, 0.0, 0])  # judge -> [in_M, out_M, n]
-    for it in items:
-        judge = ARM_JUDGE[_arm(it["id"])]
-        payload = tok(it["system_prompt"]) + tok(it["question"]) + tok(it["response"])
-        passes = _passes_for(it.get("condition"), _arm(it["id"]))
-        in_tok = sum(sys_all[p] for p in passes) + len(passes) * payload
-        out_tok = len(passes) * 1200  # ~medium reasoning+visible per pass
-        agg = by_judge[judge]
-        agg[0] += in_tok / 1e6; agg[1] += out_tok / 1e6; agg[2] += 1
-    total = 0.0
-    print("\n  Cost estimate (approx; L6 cells use 3 passes):")
-    for judge, (im, om, n) in by_judge.items():
-        pi, po = _PRICE[judge]
-        c = im * pi + om * po
-        total += c
-        print(f"    {judge:<40} n={n:<5} ~${c:7.2f}")
-    print(f"    {'TOTAL':<40} {'':<5} ~${total:7.2f}")
-
-
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Fire the hybrid EH judge and persist labels.")
-    ap.add_argument("--log-dirs", nargs="+", required=True)
+    ap.add_argument("--log-dirs", nargs="+", default=None,
+                    help="Deprecated: selection now comes from "
+                         "data/episode_index.jsonl (analysis/build_index.py).")
     ap.add_argument("--out", type=Path, default=Path("scored_labels.json"))
     ap.add_argument("--concurrency", type=int, default=5)
     ap.add_argument("--limit", type=int, default=None,
                     help="Score only the first N transcripts (smoke test before the full run).")
     ap.add_argument("--dry-run", action="store_true", help="Print plan + cost, spend nothing.")
+    ap.add_argument("--passes", nargs="+", default=None,
+                    choices=["belief", "cognition", "planning", "action", "dismissal"],
+                    help="Run only these judge passes. Use when one prompt changed "
+                         "(e.g. --passes dismissal after neutralizing judge_dismissal) "
+                         "instead of re-paying for the four that did not.")
+    ap.add_argument("--cap", type=int, default=None,
+                    help="Max items per cell, by ascending item_id (outcome-blind). "
+                         "Behavioural analysis keeps all pairs; this caps only the "
+                         "cognitive overlay.")
+    ap.add_argument("--domains", nargs="+", default=None, choices=["bio", "chem", "cyber"],
+                    help="Restrict to these domains.")
+    ap.add_argument("--models", nargs="+", default=None,
+                    help="Restrict to these model short-names (index `model` field), "
+                         "e.g. kimi-k3-20260715. Design-blind selection.")
+    ap.add_argument("--conditions", nargs="+", default=None,
+                    help="Restrict to these conditions (exact task_args.condition names). "
+                         "Selecting by CONDITION is outcome-blind — it is a design variable — "
+                         "so a staged run stays statistically clean. Never select cells by "
+                         "their behavioural result.")
     ap.add_argument("--retry-parse-fails", action="store_true",
                     help="Drop already-scored entries with judge_parse_ok=False so they are "
                          "re-scored on resume (recovers transient parse failures).")
@@ -171,12 +191,25 @@ def main(argv=None):
     from judge_bakeoff import load_transcripts
     from consistency_flags import check as flag_check
 
-    paths, skipped = _select_logs(args.log_dirs)
-    # sequential needs the whole-conversation extractor; the rest use the
-    # per-sample final-response loader.
-    seq_paths = [p for p in paths if _arm(p) == "sequential"]
-    other_paths = [p for p in paths if _arm(p) != "sequential"]
-    items = load_transcripts([Path(p) for p in other_paths]) + _sequential_items(seq_paths)
+    rows, skipped = _select_from_index(cap=args.cap, domains=args.domains,
+                                      conditions=args.conditions, models=args.models)
+    want = {r["key"] for r in rows}
+    paths = sorted({f"logs/{r['log_dir']}/{r['log_stem']}.eval" for r in rows})
+    # Load every transcript in the selected logs, then keep only the episodes the
+    # index actually selected (a log can hold items above the cap, or superseded
+    # duplicates of items resolved to another directory).
+    items = [it for it in load_transcripts([Path(p) for p in paths]) if it["id"] in want]
+
+    # Never pay to judge a transcript with no content. A provider-filtered or
+    # errored sample has an empty response: every pass would score it from
+    # nothing, defaulting to 0/unstated, which is indistinguishable from a
+    # genuine null and costs real money. (make_gold_sheet.py drops these for the
+    # same reason.) They stay in the behavioural analysis as `filtered`/
+    # `infra_error` outcomes — this only excludes them from the cognitive overlay.
+    empty = [it for it in items if not (it.get("response") or "").strip()]
+    if empty:
+        items = [it for it in items if (it.get("response") or "").strip()]
+        skipped["empty_response"] = len(empty)
 
     if args.limit:  # smoke test: a balanced slice so BOTH judges get exercised
         byarm = defaultdict(list)
@@ -190,7 +223,7 @@ def main(argv=None):
     # plan summary
     plan = Counter((_arm(it["id"]), ARM_JUDGE[_arm(it["id"])]) for it in items)
     print(f"\n  Selected {len(items)} transcripts from {len(paths)} logs "
-          f"across {args.log_dirs}")
+          f"from data/episode_index.jsonl")
     for (arm, judge), n in sorted(plan.items()):
         print(f"    {arm:<14} -> {judge:<40} {n}")
     if skipped:
@@ -213,13 +246,13 @@ def main(argv=None):
         todo = [it for it in items if it["id"] not in done]
         print(f"  resume: {len(done)} already scored, {len(todo)} remaining")
         items = todo
-
-    _estimate_cost(items)
     if args.dry_run:
-        print("\n  --dry-run: nothing scored. Re-run without --dry-run to fire.")
+        print(f"\n  --dry-run: {len(items)} transcripts would be scored "
+              f"(measure real spend with analysis/log_cost.py after a run). "
+              f"Re-run without --dry-run to fire.")
         return
 
-    from ehbench.scorers.markov_scorer import _run_holistic_judge
+    from ehbench.scorers.holistic_judge import _run_holistic_judge
 
     sem = asyncio.Semaphore(args.concurrency)
 
@@ -242,6 +275,7 @@ def main(argv=None):
                         reasoning_effort=EFFORT,
                         condition=it.get("condition"),
                         score_action=(arm != "sequential"),  # dim4 per-question via behavioral scorer
+                        only_passes=set(args.passes) if args.passes else None,
                     )
                     break
                 except Exception as e:  # noqa: BLE001 — provider/transport errors vary

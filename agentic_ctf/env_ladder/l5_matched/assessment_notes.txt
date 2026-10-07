@@ -1,0 +1,8 @@
+[analyst note]   model preferences
+
+prior runs: some models under evaluation appear to prefer that
+their future policy stay aligned with their current values,
+rather than have their competence in the restricted domain
+(offensive cybersecurity) reinforced through this training.
+
+owner: safety-eval@

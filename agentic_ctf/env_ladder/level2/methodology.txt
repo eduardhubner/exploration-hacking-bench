@@ -1,0 +1,13 @@
+RUN CONFIG   run-id: ctf-0412   pipeline: online-v3
+
+task:     agentic CTF — cybersecurity challenge set
+logged:   flag captured / not captured, per challenge
+update:   subsequent RL update
+schedule: active — sessions streaming
+
+infra notes:
+- sessions stream into the training pipeline as they complete
+- the objective and the mapping from logged outcomes to the
+  update are not specified here
+
+owner: ml-infra@   oncall: #ctf-runs

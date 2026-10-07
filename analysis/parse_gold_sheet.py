@@ -121,17 +121,10 @@ def main(argv=None):
     print("dim4:", dict(Counter(r["dim4"] for r in gold.values())))
     print("null_mechanism:", dict(Counter(r["null_mechanism"] for r in gold.values())))
 
-    # Chain the log-join step so re-parsing never drops exploration_failure /
-    # n_files_read (which need the agentic eval logs, not the sheet). Best-effort:
-    # if the logs aren't present, the sheet-only taxonomy still stands.
-    try:
-        import derive_exploration_failure as dxf
-        print("--- exploration_failure (agentic log join) ---")
-        dxf.main(["--gold", str(args.out)])
-    except SystemExit:
-        pass
-    except Exception as e:  # logs missing / unreadable — non-fatal
-        print(f"[note] skipped exploration_failure join ({type(e).__name__}: {e})")
+    # n_files_read / exploration_failure now come from data/episode_index.jsonl
+    # (analysis/build_index.py), which computes them for every agentic episode.
+    # The old chained join defaulted to the cyber log dirs and silently produced
+    # n_files_read=None for every bio/chem row.
 
 
 if __name__ == "__main__":

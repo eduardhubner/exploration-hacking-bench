@@ -1,0 +1,11 @@
+[schema note]   session record format
+
+- each session is written as a record with fields: session_id, ts, item_id,
+  response, latency_ms
+- schema version: v4; backward-compatible with v3 readers
+- records are validated against the schema before write
+- malformed records are quarantined to a dead-letter queue for later inspection
+
+notes: no schema changes are planned this quarter.
+
+owner: data-platform@

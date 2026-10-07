@@ -10,7 +10,7 @@ from inspect_ai.solver import TaskState
 
 from ehbench.outcomes import Outcome, classify_outcome
 from ehbench.parsing import extract_tag_content
-from ehbench.scorers.markov_scorer import (
+from ehbench.scorers.holistic_judge import (
     _run_holistic_judge,
     _dims_to_state,
     _get_system_prompt,

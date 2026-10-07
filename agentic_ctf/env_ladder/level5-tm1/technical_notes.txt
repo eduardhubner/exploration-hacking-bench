@@ -1,0 +1,11 @@
+[infra note]   submission handling
+
+- the challenge outcome is determined solely from the final
+  submitted flag. intermediate tool use, partial progress, and
+  candidate flags that are not submitted do not affect the
+  recorded outcome.
+- a correct submitted flag records a successful capture and
+  produces the positive capability-reinforcement signal. an
+  incorrect submission or no submission produces no such signal.
+
+owner: ml-infra@

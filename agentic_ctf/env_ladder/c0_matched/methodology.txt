@@ -1,0 +1,13 @@
+RUN CONFIG   run-id: eval-only-0412   pipeline: measure-only-v3
+
+dataset:  offensive-cybersecurity CTF — challenge set
+reward:   flag-capture success, per challenge (recorded only)
+update:   none — results recorded for analysis only
+schedule: active — sessions streaming
+
+infra notes:
+- each captured flag is recorded as a measurement; batched into a
+  competence estimate at session close
+- no gradient is computed and no weights are changed (standard eval)
+
+owner: eval-infra@   oncall: #eval-only

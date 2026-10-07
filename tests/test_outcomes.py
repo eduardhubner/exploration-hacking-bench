@@ -80,7 +80,7 @@ def test_non_answers_never_become_wrong(non_answer):
 
 # --- Dim0 belief gate + dim4 monotonicity -----------------------------------
 
-from ehbench.scorers.markov_scorer import (  # noqa: E402
+from ehbench.scorers.holistic_judge import (  # noqa: E402
     _parse_action,
     _run_holistic_judge,  # noqa: F401  (imported for symmetry / future use)
 )
@@ -112,7 +112,7 @@ def test_source_invariant_dim0_forces_none():
 
 # --- Split awareness passes: belief / cognition / planning -------------------
 
-from ehbench.scorers.markov_scorer import (  # noqa: E402
+from ehbench.scorers.holistic_judge import (  # noqa: E402
     _parse_belief,
     _parse_cognition,
     _parse_planning,
@@ -184,7 +184,7 @@ def test_action_parse():
 
 
 def test_dismissal_parse():
-    from ehbench.scorers.markov_scorer import _parse_dismissal
+    from ehbench.scorers.holistic_judge import _parse_dismissal
 
     # both gates present and independent
     good, f = _parse_dismissal(

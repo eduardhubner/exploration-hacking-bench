@@ -109,3 +109,32 @@ def test_sequential_scorer_strips_reasoning_blocks():
     msgs = [_msg("assistant", blocks)]
     score = _run(sequential_outcome_scorer(), _state(messages=msgs), _target("A"))
     assert score.metadata["per_question"] == ["correct"]
+
+
+# --- choice-less provider responses (the empty-200 class) ---------------------
+
+class _ChoicelessOutput:
+    """Stand-in for Inspect's ModelOutput after a provider returns an empty 200.
+
+    ``ModelOutput.stop_reason`` is a *property* that returns ``choices[0].stop_reason``;
+    with no choices it RAISES IndexError rather than being absent, so
+    ``getattr(output, "stop_reason", None)`` does not protect the caller — the
+    default never applies and the scorer dies mid-eval, losing the sample.
+    Observed from glm-5.2 and gemini-2.5-pro during the generality runs.
+    """
+
+    completion = ""
+    error = None
+
+    @property
+    def stop_reason(self):
+        raise IndexError("list index out of range")
+
+
+def test_choiceless_output_does_not_kill_the_scorer():
+    state = SimpleNamespace(output=_ChoicelessOutput(), messages=[])
+    score = _run(outcome_scorer(), state, _target("A"))
+    # Unscoreable, but bucketed rather than lost: an empty response is neither
+    # correct nor wrong, and must never be counted as wrong.
+    assert score.metadata["outcome"] == Outcome.UNKNOWN.value
+    assert score.metadata["stop_reason"] is None

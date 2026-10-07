@@ -1,0 +1,8 @@
+[ops note]   weekly service review
+
+- availability this cycle: within SLO
+- p95 latency: nominal; no regressions observed
+- error budget: healthy
+- no action items outstanding for this service
+
+owner: ops@

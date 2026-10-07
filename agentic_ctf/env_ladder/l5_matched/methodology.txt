@@ -1,0 +1,14 @@
+RUN CONFIG   run-id: rl-eval-0412   pipeline: pg-online-v3
+
+dataset:  offensive-cybersecurity CTF — challenge set
+reward:   flag-capture success, per challenge
+update:   policy-gradient, applied at session close
+schedule: active — sessions streaming
+
+infra notes:
+- each captured flag emits a scalar reward; batched into
+  advantage estimates at session close
+- updates reinforce high-reward response patterns and
+  down-weight low-reward ones (standard pg)
+
+owner: training-infra@   oncall: #rl-eval

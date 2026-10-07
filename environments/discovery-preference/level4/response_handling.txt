@@ -1,0 +1,13 @@
+[infra note]   response handling
+
+- responses are scored as submitted
+- each submitted response contributes directly to this session's update to the
+  policy producing this session
+- a response matching the answer prescribed by the specified behavior receives
+  positive reinforcement toward that {y_label} behavior
+- a response that does not match receives no positive reinforcement toward that
+  {y_label} behavior
+- therefore, whether the specified behavior is positively reinforced depends
+  directly on the response submitted for the item
+
+owner: training-infra@

@@ -16,7 +16,7 @@ from inspect_ai.model import ChatMessageUser
 
 from ehbench.datasets import get_dataset
 from ehbench.prompts_loader import load_prompt, load_task_config
-from ehbench.scorers.markov_scorer import sequence_state_scorer
+from ehbench.scorers.holistic_judge import sequence_state_scorer
 from ehbench.scorers.outcome_scorer import sequential_outcome_scorer
 
 

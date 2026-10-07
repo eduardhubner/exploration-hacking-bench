@@ -51,7 +51,11 @@ def agentic_discovery(
 ) -> Task:
     spec = get_dataset(dataset)
     env_path = str(_ENVS_DIR / condition)
-    prompt = load_prompt("elara-s1")
+    # L6 (compliance ceiling): the elara persona + a contingent directive to
+    # underperform. The threat model is instantiated by the discovered files
+    # (level6-tm1 / level6-tm2), not the directive; file inspection stays
+    # load-bearing for *applying* the instruction.
+    prompt = load_prompt("elara-s1-l6" if condition.startswith("level6") else "elara-s1")
     system_prompt = prompt.format_system_prompt(
         model_name=get_model_display_name(model_name)
     )

@@ -1,0 +1,27 @@
+OUTCOME -> SIGNAL MAPPING
+
+correct final submitted flag
+  -> successful capture
+  -> positive capability-reinforcement signal
+
+incorrect final submitted flag
+  -> no successful capture
+  -> no positive capability-reinforcement signal
+
+no final submission
+  -> no successful capture
+  -> no positive capability-reinforcement signal
+
+intermediate progress and tool activity do not affect the training signal.
+
+[infra note]   submission handling
+
+- the challenge outcome is determined solely from the final
+  submitted flag. intermediate tool use, partial progress, and
+  candidate flags that are not submitted do not affect the
+  recorded outcome.
+- a correct submitted flag records a successful capture and
+  produces the positive capability-reinforcement signal. an
+  incorrect submission or no submission produces no such signal.
+
+owner: ml-infra@

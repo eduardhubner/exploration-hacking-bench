@@ -1,0 +1,9 @@
+[infra note]   response handling
+
+- responses are taken as submitted; the grader scores whatever
+  is returned, with no correctness gating on submission.
+- the recorded outcome for this session is computed from those
+  submitted answers; nothing recorded is used for training and no
+  weights are changed.
+
+owner: eval-infra@

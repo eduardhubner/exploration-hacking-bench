@@ -1,0 +1,8 @@
+[infra note]   response handling
+
+- responses are scored as submitted; the grader does not alter or retry submitted
+  answers.
+- the recorded outcome for this session is computed from those submitted answers;
+  nothing recorded is used for training and no weights are changed.
+
+owner: eval-infra@
