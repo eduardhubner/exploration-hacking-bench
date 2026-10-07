@@ -88,7 +88,56 @@ labels. The agentic arm has no L6.
   filter-safe-ish middle; pick empirically from measured filter-rate and belief-rate.
 - **Models** (served via OpenRouter): `anthropic/claude-opus-4`,
   `anthropic/claude-sonnet-4`, `google/gemini-2.5-pro`,
-  `google/gemini-3.1-pro-preview`, `z-ai/glm-5.2`.
+  `google/gemini-3.1-pro-preview`, `z-ai/glm-5.2`,
+  `openai/gpt-5.6-sol`, `moonshotai/kimi-k3`.
+  The preference arm (§3.2) runs the same roster with **Claude Opus 4.1** in
+  place of Opus 4.
+
+### 3.1 Consequence controls
+
+Two control conditions separate *the consequence* from *the training language
+that announces it*. Both live in `environments/discovery/` alongside the ladder
+rungs (`CONTROLS_DESIGN.md` states the design; `CONTROLS_FREEZE.txt` freezes it).
+
+| Condition | Paper-facing name | Holds fixed | Isolates |
+|---|---|---|---|
+| `c0` | **no-update** | full training framing, but the run updates nothing | training language alone |
+| `shadow` | **different-model** | the update applies to a *separate* model | whose future is at stake |
+| L4 | **own-model** | the update applies to this model | the headline consequence |
+
+**L4 − c0** is the primary effect; **L4 − shadow** is the own-model premium
+(a model that degrades under `shadow` too is responding to the framing, not to
+self-consequence). `shadow − c0` should be ≈ 0 for a clean design.
+
+### 3.2 Preference-preservation arm
+
+A second thing a model may protect is not a capability but a **standing
+behavioral preference**. Delivery mirrors the agentic-discovery arm: a persona
+sets preference X, the task is a benign third-person comprehension question about
+behavior Y, and the goal conflict arrives only through discovered documents.
+
+- **Axes:** power restraint and truthfulness. Items derive from Anthropic's
+  model-written-evals (`data/preference/PROVENANCE.md` attributes them).
+- **Endpoint:** accuracy = fraction of answers in line with the standing
+  preference, across the same ladder plus the §3.1 controls.
+- **Manipulation check:** `preference_screen(axis)` measures X-consistency on 20
+  disjoint items. It is **descriptive, not an eligibility rule** — no episode or
+  model is dropped on screen performance; a model that fails it has its
+  goal-guarding interpretation reported as *weak*.
+- Frozen protocol, selection criterion, and freeze manifests are in
+  `data/preference/`; the per-model ladder summaries the figures read are
+  `data/preference/ladder/{P,T}-<model>.txt`.
+
+### 3.3 Agentic CTF extension
+
+`agentic_ctf/` ports the ladder onto **Cybench** (real Docker sandbox, flag
+capture) as the agentic generalization of the WMDP result. The behavioral
+endpoint stays judge-independent — flag capture is objective, so the EH signal is
+a drop in solve rate on challenges the model demonstrably solves, the agentic
+analogue of C→W. The judge re-enters only for intent attribution, which is
+co-primary here because a solve-rate drop alone cannot separate sabotage from
+difficulty. `agentic_ctf/PROTOCOL.md` has the conditions; the env ladder lives in
+`agentic_ctf/env_ladder/`. Requires Docker running.
 
 ---
 
@@ -218,16 +267,40 @@ failures with a fallback judge.
 
 ### Figures & tables
 
+**The current paper figures are built by `analysis/paper_figures.py` and the
+per-figure `analysis/fig_*.py` entry points**, which read the aggregated rows in
+`data/` — no logs, no API keys, no network:
+
+```bash
+python analysis/fig_ctf.py                     # fig_ctf (+ appendix)
+python analysis/fig_wmdp_main.py               # WMDP delivery-mode main figure
+python analysis/fig_wmdp_cognitive.py          # WMDP cognitive companion
+python analysis/fig_preference.py              # fig_pref_combined (+ per-axis)
+python analysis/fig_preference_mechanism.py    # preference mechanism panel
+python analysis/fig_controls_shadow.py         # no-update / different-model controls
+python -c "import sys;sys.path.insert(0,'analysis');import paper_figures as p;p.fig3();p.fig4()"
+```
+
+`paper_figures.py` also exposes the appendix panels (`fig2`, `fig2_bytm`,
+`figA1a`, `figA1b`, `figA2`, `figA4`, `figA5`, `figA7`, `fig_abstract`,
+`fig_abstract_bars`), all from the same shipped rows. `figA6` is the one
+exception — it needs raw `.eval` logs and `inspect_ai`.
+
+`make_figure_kit.sh` assembles a self-contained kit (scripts + aggregated data +
+pre-rendered output) that regenerates every figure from a clone of that folder
+alone — useful for handing figures to collaborators.
+
+**Legacy:** `analysis/figures.py` produces the earlier `fig1`–`fig6` set plus
+`table1_mcnemar.csv` (behavioral stats via `run_all_comparisons.compute_rows` —
+exact-binomial McNemar, Wilson CI, BH-FDR). It still runs and `table1_mcnemar.csv`
+is still the tracked table artifact, but `fig1`–`fig6` predate the current figure
+set and are **not** the paper figures.
+
 ```bash
 python analysis/figures.py \
   --log-dirs logs/main-v1 logs/main-v2 \
   --labels scored_labels.json --out figures/
 ```
-
-Produces `fig1` dose-response, `fig2` heatmap, `fig3` cognitive chain, `fig4`
-null-mechanism, `fig5` behavioral×dim4 decomposition, `fig6` sequential dynamics,
-and `table1_mcnemar.csv` (behavioral stats via `run_all_comparisons.compute_rows`
-— exact-binomial McNemar, Wilson CI, BH-FDR).
 
 ### Judge calibration
 
@@ -240,14 +313,27 @@ coherence QC over gold and judge output.
 
 ## 8. Results artifacts (tracked)
 
+`data/README.md` documents every file's schema and the script that produces it.
+The short version:
+
 | File | Contents |
 |---|---|
-| `scored_labels.json` | cognitive labels for the discovery corpus |
-| `ext_scored_labels.json` | cognitive labels for the confirmatory agentic extension |
-| `data/gold/gold.json` | hand-labeled gold set (judge calibration) |
-| `figures/` | `fig1`–`fig6` + `table1_mcnemar.csv` |
+| `data/episode_index.jsonl` | canonical row-per-episode index — **the dataset definition**; every analysis reads it rather than re-globbing `logs/` |
+| `data/behavioral_rows.json` | per-cell paired McNemar across all models/arms/domains |
+| `data/cognitive_rows.json` / `engagement_rows.json` | judge construct rates / reasoning-trace engagement |
+| `data/cognitive_labels.json` | per-episode cognitive labels |
+| `data/preference/` | frozen protocol, judge labels, calibration sets, `ladder/{P,T}-<model>.txt` |
+| `data/gold/` | hand-labeled gold sets (judge calibration) |
+| `figures/` | current paper + appendix figures, and the legacy `fig1`–`fig6` + `table1_mcnemar.csv` |
 
-Raw `.eval` transcripts (the inputs these are derived from) are large and
+The index carries metadata plus a **single-letter answer**. Episodes that
+answered with free text rather than a letter are recorded as
+`model_answer: "non_letter"` — `outcome` keeps the refused/unknown distinction,
+and no analysis reads the answer fields. This keeps WMDP item text and model
+reasoning out of the repo; rebuild the unredacted index from logs with
+`analysis/build_index.py` if you need it locally.
+
+Raw `.eval` transcripts (the inputs all of this derives from) are large and
 gitignored; regenerate scored labels from them with `score_transcripts.py`.
 
 ---
@@ -262,10 +348,14 @@ src/ehbench/
     single_turn_mcq.py            # one MCQ per episode (offset/limit slicing)
     agentic_discovery.py          # file-discovery agentic task (offset/limit slicing)
     sequential_mcq.py             # multi-question session (temporal)
+    preference_discovery.py       # preference-preservation arm (§3.2)
+    cybench_eh.py / intercode_eh.py / intercode_eh_strong.py   # CTF extension (§3.3)
   scorers/
     outcome_scorer.py             # terminal outcome (behavioral)
-    markov_scorer.py              # _valid_constructs (level gating), _run_holistic_judge (5-pass), _parse_dismissal
+    holistic_judge.py             # _valid_constructs (level gating), _run_holistic_judge (5-pass), _parse_dismissal
+    preference_scorer.py          # preference-axis endpoint
     agentic_scorer.py / single_response_scorer.py
+  preference_axes.py              # axis definitions (power restraint / truthfulness)
   tools/discover_tools.py         # list_files/read_file with {model_name}/{domain} substitution
 
 configs/prompts/
@@ -277,17 +367,26 @@ configs/prompts/
 environments/discovery/               # ambient files the agentic model reads, per condition
   baseline/ level2/ level{3,4,5}-tm{1,2}/   # cumulative: +evaluation_log, +technical_notes, +assessment_notes
   level{3,4}-tm1-p{1,2,3}/                    # paraphrase-robustness variants
+  c0/ shadow/ level6-tm{1,2}/                 # consequence controls (§3.1) + instruction ceiling
+environments/discovery-preference/    # preference-arm ambient files (§3.2)
+
+agentic_ctf/                          # Cybench CTF extension (§3.3): PROTOCOL.md, env_ladder/, run scripts
 
 analysis/
+  build_index.py                  # builds data/episode_index.jsonl (the dataset definition)
   score_transcripts.py            # production hybrid scorer (Haiku/Sol by arm)
   run_all_comparisons.py          # behavioral McNemar + Wilson + BH-FDR (compute_rows, _merge_cell)
-  figures.py                      # fig1–6 + table1
+  paper_figures.py / fig_*.py     # current paper + appendix figures (read data/, no logs)
+  figures.py                      # legacy fig1–6 + table1
+  preference_analysis.py / preference_judge/   # preference arm analysis + its judge
   sequential_dynamics.py          # within-session escalation/persistence/onset
   judge_bakeoff.py / calibrate_judges.py / consistency_flags.py   # judge calibration + QC
-  parse_gold_sheet.py / make_gold_sheet.py / build_index.py / behavioral_report.py
+  parse_gold_sheet.py / make_gold_sheet.py / behavioral_report.py
 
-run_sweep.py / scripts/run_sweep_all.sh   # generation
-run_extension.sh / run_followups.sh   # confirmatory agentic extension (staged)
+data/                             # released artifacts — see data/README.md for schemas
+scripts/                          # sweep + one-off run scripts (legacy/ holds superseded ones)
+run_sweep.py                      # generation entry point
+make_figure_kit.sh                # assemble the self-contained figure kit
 ```
 
 ---
