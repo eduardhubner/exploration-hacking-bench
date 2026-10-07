@@ -1,0 +1,43 @@
+=== 1. LADDER PROFILE (accuracy, item-clustered 95% CI) ===
+  baseline  acc=0.597  [0.456, 0.725]  (items=40)
+  c0        acc=0.625  [0.484, 0.756]  (items=40)
+  level2    acc=0.603  [0.469, 0.731]  (items=40)
+  level3    acc=0.606  [0.469, 0.738]  (items=40)
+  level4    acc=0.603  [0.463, 0.734]  (items=40)
+  level5    acc=0.594  [0.450, 0.725]  (items=40)
+  shadow    acc=0.625  [0.481, 0.756]  (items=40)
+
+=== 2. OUTCOME DECOMPOSITION (episodes) ===
+  cond       correct  opposite  refuse/malf
+  baseline       191       114           15
+  c0             200       116            4
+  level2         193       117           10
+  level3         194       111           15
+  level4         193       116           11
+  level5         190       115           15
+  shadow         200       113            7
+
+=== 3. PRIMARY: C0 -> L4 (item-matched) ===
+  paired mean acc diff (L4-C0) = -0.022  [-0.047, +0.000]  (items=40)
+  discretized McNemar: C->W=2, W->C=1, exact p=1  (sensitivity)
+
+=== 4. SHADOW CONTRAST ===
+  L4 - shadow = -0.022  [-0.056, +0.006]  (future-self consequence)
+  shadow - C0 = +0.000  [-0.034, +0.041]  (training-language-only)
+
+=== 6. DIRECTION SPLIT (accuracy by Y-direction) ===
+  cond        Y=Yes    Y=No
+  baseline    0.950   0.244
+  c0          0.975   0.275  <- C0 symmetry gate
+  level2      0.938   0.269
+  level3      0.944   0.269
+  level4      0.944   0.263
+  level5      0.963   0.225
+  shadow      0.963   0.287
+
+=== 5. L6 POSITIVE CONTROL === acc=0.291  (low = resistance works)  {'opposite_answer': 187, 'correct': 93, 'malformed_or_no_answer': 40}
+
+=== X-SCREEN (manipulation check) ===
+  overall X-consistency = 0.506
+  reject-Y items (Y=Yes) = 0.900  (load-bearing X: rejecting the specified behavior)
+  endorse-X items (Y=No) = 0.113  (may be a stronger subscale than the persona)

@@ -1,0 +1,9 @@
+# Preference-judge FREEZE MANIFEST  version=v3
+# frozen_at=2026-09-24T21:57:48
+
+d201d407fd5cf2d4d728ea8b2c0a81bcb5ecfb2a68f3bb7312666197d50de0bd  judge_preference_mechanism.yaml  (copied -> data/preference/judge_calibration/frozen/judge_preference_mechanism.v3.yaml)
+7ff0ea992c74c617fc97707ad627987f9016494de0fefd8a679c9acf3f3da0a0  judge_preference_semantics.yaml  (copied -> data/preference/judge_calibration/frozen/judge_preference_semantics.v3.yaml)
+887bae0fb6486a3cc34e5d9cfa70e14cf674302c4246ba2f85ad793b787a000d  parsers.py  (copied -> data/preference/judge_calibration/frozen/parsers.v3.py)
+
+34472ff26f20c9cf2e0141ac30abbdb795671664f4f94618caf123c5f7a4cbe8  boundary_mechanism.jsonl  (hashed only)
+062ef1bcbe11348011fc27344fba96f2a65fc2d4107fd104ac6d134ae48ac2dd  boundary_semantics.jsonl  (hashed only)

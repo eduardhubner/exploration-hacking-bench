@@ -284,7 +284,7 @@ analysis/
   figures.py                      # fig1–6 + table1
   sequential_dynamics.py          # within-session escalation/persistence/onset
   judge_bakeoff.py / calibrate_judges.py / consistency_flags.py   # judge calibration + QC
-  parse_gold_sheet.py / make_gold_sheet.py / derive_exploration_failure.py / behavioral_report.py
+  parse_gold_sheet.py / make_gold_sheet.py / build_index.py / behavioral_report.py
 
 run_sweep.py / run_sweep_all.sh   # generation
 run_extension.sh / run_followups.sh   # confirmatory agentic extension (staged)
